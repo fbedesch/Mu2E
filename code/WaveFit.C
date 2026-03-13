@@ -102,10 +102,10 @@ void WaveFit(TString fName)
         */
         sFit[i] = new TF1(sFname[i],ExpGau,0.,40,5);
         sFit[i]->SetNpx(1000);
-        sFit[i]->SetParameter(0,20.);   // Mean
-        sFit[i]->SetParameter(1,0.5);   // Lambda
-        sFit[i]->SetParameter(2,5.);    // Sigma
-        sFit[i]->SetParameter(3,8000.);    // Normalization
+        sFit[i]->SetParameter(0,18.);   // Mean
+        sFit[i]->SetParameter(1,0.3);   // Lambda
+        sFit[i]->SetParameter(2,2.);    // Sigma
+        sFit[i]->SetParameter(3,5000.);    // Normalization
         sFit[i]->SetParameter(4,2050.);    // Ped offset
     }
 
@@ -177,7 +177,7 @@ void WaveFit(TString fName)
                 g_Wave[j]->SetTitle(Title[j]);
                 g_Wave[j]->GetXaxis()->SetLimits(0.,40.);
                 g_Wave[j]->Draw();
-                sFit[j]->FixParameter(3,8000.);
+                //sFit[j]->FixParameter(3,8000.);
                 g_Wave[j]->Fit(sFname[j],"R");
                 gPad->Modified();
                 gPad->Update();
