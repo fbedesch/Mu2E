@@ -4,7 +4,7 @@
 #include <TGraph.h>
 #include <TCanvas.h>
 #include <iostream>
-#include "Mu2Edata.h"
+#include "classes/Mu2Edata.h"
 
 void WavePlot(TString fName)
 {
