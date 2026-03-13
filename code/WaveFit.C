@@ -16,7 +16,7 @@ TSpline3* template_spline;  // vector with splines
 //
 Double_t SplFun(Double_t *x, Double_t *par)
 {
-    Double_t fun = 1000*template_spline->Eval(x[0]);
+    Double_t fun = par[0]*template_spline->Eval(x[0]);
     return fun;
 }
 //
@@ -61,7 +61,7 @@ void WaveFit(TString fName)
     //
     // Read splines
     //
-    TString splineFile = "../data/splines/laser_splines_20250529_disk1phi1_laser_scan_fw04_02_merged.root";
+    TString splineFile = "../data/splines/laser_splines_caloDTC2_Laser_ROC_0503_D1P0F1_fw04.root";
     TFile template_file(splineFile, "READ");
     if (!template_file.IsOpen()){
         std::cout << splineFile <<  " NOT FOUND" << std::endl;
@@ -73,16 +73,21 @@ void WaveFit(TString fName)
     //
     // Load spline in vector
     //
-    TString Spline_Name = "spline_122_10";
+    TString Spline_Name = "spline_160_4";
     //
     template_spline = (TSpline3*)template_file.Get(Spline_Name.Data());
+    cout<<"TSpline "<<Spline_Name<<" loaded"<<endl;
+    Double_t Xmin = template_spline->GetXmin();
+    Double_t Xmax = template_spline->GetXmax();
+    cout<<"Spline: Xmin= "<<Xmin<<", Xmax= "<<Xmax<<endl;
     //
     // Check spline
     TCanvas *Csp = new TCanvas("Csp","Test spline",100,100,800,800);
-    TF1 *fSpline = new TF1("fSpline",SplFun,-1500.,1500.,1);
+    TF1 *fSpline = new TF1("fSpline",SplFun,Xmin,Xmax,1);
     fSpline->SetNpx(1000);
     Csp->Divide(1,1);
     Csp->cd(1);
+    fSpline->SetParameter(0,100);
     fSpline->Draw();
     gPad->Modified();
     gPad->Update();
@@ -93,13 +98,14 @@ void WaveFit(TString fName)
     TString sFname[MinHit];
     for(Int_t i=0; i<MinHit; i++){
         sFname[i] = Form("sFit%d",i);
-        /*
+        // Version with splines
         sFit[i] = new TF1(sFname[i],FitFun,0.,40,3);
         sFit[i]->SetNpx(1000);
         sFit[i]->SetParameter(0,2800.);
         sFit[i]->SetParameter(1,17.);
         sFit[i]->SetParameter(2,2050.);
-        */
+        /*
+        // Version with exponential Gausian
         sFit[i] = new TF1(sFname[i],ExpGau,0.,40,5);
         sFit[i]->SetNpx(1000);
         sFit[i]->SetParameter(0,18.);   // Mean
@@ -107,17 +113,7 @@ void WaveFit(TString fName)
         sFit[i]->SetParameter(2,2.);    // Sigma
         sFit[i]->SetParameter(3,5000.);    // Normalization
         sFit[i]->SetParameter(4,2050.);    // Ped offset
-    }
-
-    //
-    // Check function
-    TCanvas *Csp1 = new TCanvas("Csp1","Test functions",200,200,1500,1000);
-    Csp1->Divide(3,2);
-    for(Int_t i=0; i<MinHit; i++){
-        Csp1->cd(i+1);
-        sFit[i]->Draw();
-        gPad->Modified();
-        gPad->Update();
+        */
     }
     //
     // Open data  file and configure data access
@@ -177,8 +173,7 @@ void WaveFit(TString fName)
                 g_Wave[j]->SetTitle(Title[j]);
                 g_Wave[j]->GetXaxis()->SetLimits(0.,40.);
                 g_Wave[j]->Draw();
-                //sFit[j]->FixParameter(3,8000.);
-                g_Wave[j]->Fit(sFname[j],"R");
+                g_Wave[j]->Fit(sFname[j],"R","",Xmin, Xmax);
                 gPad->Modified();
                 gPad->Update();
             }
