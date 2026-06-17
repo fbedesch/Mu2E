@@ -16,7 +16,8 @@ TSpline3* template_spline;  // vector with splines
 //
 Double_t SplFun(Double_t *x, Double_t *par)
 {
-    Double_t fun = par[0]*template_spline->Eval(x[0]);
+    Double_t BaseOffset = 0.770712;
+    Double_t fun = par[0]*(template_spline->Eval(x[0])-BaseOffset);
     return fun;
 }
 //
@@ -32,8 +33,9 @@ Double_t FitFun(Double_t *x, Double_t *par)
   Double_t Scale = par[0];
   Double_t TimeOffSet = par[1];
   Double_t PedOffSet  = par[2];
+  Double_t BaseOffset = 0.770712;
   Double_t fun;
-  fun = Scale*template_spline->Eval(x[0]-TimeOffSet)+PedOffSet;
+  fun = Scale*(template_spline->Eval(x[0]-TimeOffSet)-BaseOffset)+PedOffSet;
   return fun;
 }
 
@@ -87,8 +89,21 @@ void WaveFit(TString fName)
     fSpline->SetNpx(1000);
     Csp->Divide(1,1);
     Csp->cd(1);
-    fSpline->SetParameter(0,100);
+    fSpline->SetParameter(0,1.0);
     fSpline->Draw();
+    // print baseline
+    Double_t BaseMean = 0.;
+    const Int_t Nbase = 10;
+    Double_t Base[Nbase];
+    std::cout<<"Baseline values: ";
+    for(Int_t i=0; i<10; i++){
+        Base[i] = fSpline->Eval((Double_t) i);
+        if(i<Nbase-1)std::cout<<Base[i]<<", ";
+        else std::cout<<Base[i]<<std::endl;
+        BaseMean += Base[i];
+    }
+    std::cout<<"Base mean = "<<BaseMean/(Double_t) Nbase<<std::endl;
+    //
     gPad->Modified();
     gPad->Update();
     //
@@ -102,7 +117,7 @@ void WaveFit(TString fName)
         sFit[i] = new TF1(sFname[i],FitFun,0.,40,3);
         sFit[i]->SetNpx(1000);
         sFit[i]->SetParameter(0,2800.);
-        sFit[i]->SetParameter(1,17.);
+        sFit[i]->SetParameter(1,0.);
         sFit[i]->SetParameter(2,2050.);
         /*
         // Version with exponential Gausian
@@ -148,7 +163,7 @@ void WaveFit(TString fName)
                 TVectorD WaveData(100);
                 TVectorD WaveChan(100);
                 for(Int_t j=First[k]; j<First[k]+Length[k]; j++){   // Load waveform arrays
-                    WaveChan(j-First[k]) = (Double_t) (j-First[k]);
+                    WaveChan(j-First[k]) = (Double_t) (j);
                     WaveData(j-First[k]) = (Double_t) data.GetADC(j);
                 }
                 WaveCh.push_back(new TVectorD(WaveChan));     // Store waveform
@@ -171,9 +186,12 @@ void WaveFit(TString fName)
                 Data = WaveDt[j]->GetMatrixArray();
                 g_Wave[j] = new TGraph(Length[j],Channel,Data);
                 g_Wave[j]->SetTitle(Title[j]);
-                g_Wave[j]->GetXaxis()->SetLimits(0.,40.);
+                Double_t Start = (Double_t) data.GetFirstsample(j);
+                Double_t wLeng = (Double_t) data.GetNofsamples(j);
+                g_Wave[j]->GetXaxis()->SetLimits(Start,Start+wLeng);
                 g_Wave[j]->Draw();
-                g_Wave[j]->Fit(sFname[j],"R","",Xmin, Xmax);
+                sFit[j]->SetParameter(1,Start);
+                g_Wave[j]->Fit(sFname[j],"R","",Xmin+Start, Xmax+Start);
                 gPad->Modified();
                 gPad->Update();
             }
@@ -183,7 +201,8 @@ void WaveFit(TString fName)
             std::cout<<"New event? (Y/N)"<<std::endl;
             TString resp;
             std::cin>>resp;
-            if(resp == "N" || resp == "n") exit(0);
+            //if(resp == "N" || resp == "n") exit(0);
+            if(resp == "N" || resp == "n") return;
             for(Int_t k=0; k<Nhits; k++){
                 delete g_Wave[k];
                 g_Wave[k] = nullptr;

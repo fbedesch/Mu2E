@@ -21,6 +21,19 @@ void SimplePlot(TString fName)
     TH1D *h_ppos = new TH1D("h_ppos","Peak position", 20,0.,20.);
     TH1D *h_pval = new TH1D("h_pval","Peak value",300,2000.,5000.);
     //
+    const Int_t Nhit = 6;
+    TH1D *h_First[Nhit];
+    TH1D *h_Leng[Nhit];
+    //
+    for(Int_t i=0; i<Nhit; i++){
+        TString hFid = Form("h_First%d",i);
+        TString hTitle = Form("First sample for hit %d",i);
+        h_First[i] = new TH1D(hFid,hTitle,300,-0.5,299.5);
+        TString hLid = Form("h_Leng%d",i);
+        TString hLTitle = Form("Nr of  samples for hit %d",i);
+        h_Leng[i] = new TH1D(hLid,hLTitle,300,-0.5,299.5);
+    }
+    //
     // Main event loop
     //
     TTree *tree = data.GetTree();
@@ -35,6 +48,10 @@ void SimplePlot(TString fName)
         for(Int_t k=0; k<data.GetNhits(); k++){
             h_ppos->Fill((Double_t) data.GetPeakpos(k));    // Fill more histograms
             h_pval->Fill((Double_t) data.GetPeakval(k));
+            //
+            h_First[k]->Fill((Double_t) data.GetFirstsample(k));
+            h_Leng [k]->Fill((Double_t) data.GetNofsamples(k));
+            //
             if(i%1000 == 0)cout<<"nev="<<i<<", k "<<k
                 <<", pos= "<<data.GetPeakpos(k)<<", val= "<<data.GetPeakval(k)<<endl;
         }
@@ -57,4 +74,18 @@ void SimplePlot(TString fName)
     h_pval->Draw();
     h_pval->SetDirectory(nullptr);
     //
+    TCanvas *Cnv1 = new TCanvas("Cnv1","First hit start",150,150,1600,800);
+    Cnv1->Divide(3,2);
+    for(Int_t i=0; i<Nhit; i++){
+        Cnv1->cd(i+1);
+        h_First[i]->Draw();
+    }
+    //
+    TCanvas *Cnv2 = new TCanvas("Cnv2","Hit length",150,150,1600,800);
+    Cnv2->Divide(3,2);
+    for(Int_t i=0; i<Nhit; i++){
+        Cnv2->cd(i+1);
+        h_Leng[i]->Draw();
+    }
+
 }
