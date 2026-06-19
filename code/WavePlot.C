@@ -39,14 +39,19 @@ void WavePlot(TString fName)
                 Board [k] = data.GetBoardID(k);
                 Chan  [k] = data.GetChanID(k);
                 Title [k] = Form("Board %d - Channel %d", Board[k], Chan[k]);
+                Int_t Nbase = 10; Int_t ind = 0; Double_t BaseLine = 0.;
                 Int_t WaveData[100];
                 Int_t WaveChan[100];
                 for(Int_t j=First[k]; j<First[k]+Length[k]; j++){   // Load waveform arrays
                     WaveChan[j-First[k]] = j-First[k];
                     WaveData[j-First[k]] = data.GetADC(j);
+                    if(ind<Nbase) BaseLine += (Double_t) data.GetADC(j);
+                    ind++;
                 }
                 WaveCh.push_back(WaveChan);     // Store waveform
                 WaveDt.push_back(WaveData);
+                //
+                std::cout<<Title[k]<<", Baseline = "<<BaseLine/(Double_t)Nbase<<std::endl;
             }
             //
             //  Plot 6 waveforms
@@ -67,7 +72,7 @@ void WavePlot(TString fName)
             std::cout<<"New event? (Y/N)"<<std::endl;
             TString resp;
             std::cin>>resp;
-            if(resp == "N" || resp == "n") exit(0);
+            if(resp == "N" || resp == "n") return;
             for(Int_t k=0; k<Nhits; k++){
                 delete g_Wave[k];
                 g_Wave[k] = nullptr;

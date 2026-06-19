@@ -7,6 +7,7 @@
 #include <TSpline.h>
 #include <TF1.h>
 #include <TCanvas.h>
+#include <TStyle.h>
 #include <iostream>
 #include "classes/Mu2Edata.h"
 
@@ -119,6 +120,9 @@ void WaveFit(TString fName)
         sFit[i]->SetParameter(0,2800.);
         sFit[i]->SetParameter(1,0.);
         sFit[i]->SetParameter(2,2050.);
+        sFit[i]->SetParName(0,"Scale");
+        sFit[i]->SetParName(1,"t0");
+        sFit[i]->SetParName(2,"OffSet");
         /*
         // Version with exponential Gausian
         sFit[i] = new TF1(sFname[i],ExpGau,0.,40,5);
@@ -179,6 +183,7 @@ void WaveFit(TString fName)
             Cnv->Divide(3,2);
             for(Int_t k=0; k<MinHit; k++){
                 Cnv->cd(k+1);
+                gStyle->SetOptFit(1111);
                 Int_t j = Order[k];
                 Double_t *Channel = new Double_t[100];
                 Double_t *Data = new Double_t[100];
@@ -201,7 +206,6 @@ void WaveFit(TString fName)
             std::cout<<"New event? (Y/N)"<<std::endl;
             TString resp;
             std::cin>>resp;
-            //if(resp == "N" || resp == "n") exit(0);
             if(resp == "N" || resp == "n") return;
             for(Int_t k=0; k<Nhits; k++){
                 delete g_Wave[k];
