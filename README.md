@@ -7,8 +7,15 @@ code/SimplePlot.C   example on how to plot some data
 code/WavePlot.C     example on display of waveforms
 code/WavetoRoot.C   Fit waveform with spline and store results in root file
 code/PlotFitData.C  Read stored fit results and plots them
-
+//
+Additional code to monitor PIN diode performance (handles also Art generated files)
+code/LaserView.C
+code/classes/LasrConf.cc
+//
+// Examples
+//
 Time fitting procedure:
+=======================
 - Operate from main directory ~/Mu2E/Mu2E
 - Input data files in ../data/timing
   example: ../data/timing/caloDTC2_Laser_ROC_0503_D1P1F2_fw06.root
@@ -32,3 +39,14 @@ ROOT>.L code/PlotFitData.C+
 ROOT>PlotFitData("OutputFile.root")
 example:
 ROOT>PlotFitData("Fit_D1P1F2_fw06.root")
+//
+Laser PIN diode monitor
+=======================
+- Operate from main directory ~/Mu2E/Mu2E
+- Input data files in ../data/FWscan
+  example: ../data/FWscan/mc2_120719_FW03.root
+ROOT>
+ROOT>.L code/classes/Mu2Edata.cc+
+ROOT>.L code/classes/LaserConf.cc+
+ROOT>.L code/LaserView.C+
+ROOT>LaserView("../data/FWscan/mc2_120719_FW03.root")
