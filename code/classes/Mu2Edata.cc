@@ -5,27 +5,33 @@ Mu2Edata::Mu2Edata()
     //
     // Just to access fit data tree
     //
-    fMaxHit = 6;
+    fMaxHit = 3000; // Number of available readout channels
     InitArrays();
 }
 //
 Mu2Edata::Mu2Edata(TString InFile, Int_t Opt)
 {
     //
-    // Opt = 0 Normal operation
-    // Opt = 1 Do not match tree to local variables
+    //
+    // Opt = 0 Binary (default)
+    // Opt = 1 ART
+    // Opt = 2 Do not match tree to local variables
     //
     // Open the ROOT file in read mode
     //
-    fIn = TFile::Open(InFile, "READ");
+    fIn = new TFile(InFile, "READ");
     if (!fIn || fIn->IsZombie()) {
         std::cerr << "Error opening file!"<<InFile.Data() << std::endl;
         return;
     }
+    fisART = kFALSE;
+    if(Opt == 1)fisART = kTRUE;
     //
     // Get the TTree object from the file
     //
-    fTree = (TTree*)fIn->Get("tree");
+    Bool_t isART = kTRUE;
+    if(fisART) fTree = (TTree*)fIn->Get("caloAnalyzer/tree");
+    else       fTree = (TTree*)fIn->Get("tree");
     if (!fTree) {
         std::cerr << "Error getting tree!" << std::endl;
         fIn->Close();
@@ -35,17 +41,18 @@ Mu2Edata::Mu2Edata(TString InFile, Int_t Opt)
     // Get list of branches
     //
     TObjArray *BranchList = fTree->GetListOfBranches();
+    //BranchList->Print();
     //
     // Get list of leaves
     //
     TObjArray *LeaveList = fTree->GetListOfLeaves();
-    //
+    //LeaveList->Print();
     // Only if normal operation
-    if(Opt == 0){
+    if(Opt < 2){
         //
         // Default array sizes
-        fMaxHit = 6;
-        fMaxSamp = 500;
+        fMaxHit = 3000;
+        fMaxSamp = 60000;
         InitArrays();
         InitTreeIn();
     }
@@ -53,15 +60,18 @@ Mu2Edata::Mu2Edata(TString InFile, Int_t Opt)
 void Mu2Edata::InitArrays()
 {
 // Data file
+    if(fisART)fDtcIDarr= new Int_t[fMaxHit];       // dtcID[nhits]
     fBoardID = new Int_t[fMaxHit];       // boardID[nhits]
     fLinkID  = new Int_t[fMaxHit];       // linkID[nhits]
     fChanID  = new Int_t[fMaxHit];       // chanID[nhits]
     fErrflag = new Int_t[fMaxHit];       // errflag[nhits]
     fFff     = new Int_t[fMaxHit];       // fff[nhits]
     fTimetot = new Int_t[fMaxHit];       // timetot[nhits]
-    fEwhit   = new Int_t[fMaxHit];       // ewhit[nhits]
+    if(!fisART)fEwhit   = new Int_t[fMaxHit];      // ewhit[nhits]  binary
+    else       fEwhitL  = new Long64_t[fMaxHit]; // ewhit[nhits]  ART
     fPeakpos = new Int_t[fMaxHit];       // peakpos[nhits]
     fPeakval = new Int_t[fMaxHit];       // peakval[nhits]
+    if(fisART)fBaseline = new Float_t[fMaxHit]; // baseline[nhits]
     fNofsamples = new Int_t[fMaxHit];    // nofsamples[nhits]
     fFirstsample= new Int_t[fMaxHit];    // firstsample[nhits]
     fADC = new Int_t[fMaxSamp];          // ADC[nsamples]
@@ -76,6 +86,25 @@ void Mu2Edata::InitArrays()
     fNorm       = new Double_t[fMaxHit]; // Normalization
     fTimOff     = new Double_t[fMaxHit]; // Time Offset
     fPedOff     = new Double_t[fMaxHit]; // Baseline offset
+}
+void Mu2Edata::DeleteArrays()
+{
+    // Data file
+    if(fDtcIDarr) delete [] fDtcIDarr;
+    if(fBoardID) delete [] fBoardID;
+    if(fLinkID) delete [] fBoardID;
+    if(fChanID) delete [] fChanID;
+    if(fErrflag) delete [] fErrflag;
+    if(fFff) delete [] fFff;
+    if(fTimetot) delete [] fTimetot;
+    if(fEwhit) delete [] fEwhit;
+    if(fEwhitL) delete [] fEwhitL;
+    if(fPeakpos) delete [] fPeakpos;
+    if(fPeakval) delete [] fPeakval;
+    if(fBaseline) delete [] fBaseline;
+    if(fNofsamples) delete [] fNofsamples;
+    if(fFirstsample) delete [] fFirstsample;
+    if(fADC) delete [] fADC;
 }
 //
 Mu2Edata::~Mu2Edata()
@@ -112,18 +141,22 @@ void Mu2Edata::InitTreeIn()
     fTree->SetBranchAddress("run",       &fRun);
     fTree->SetBranchAddress("subrun",    &fSubrun);
     fTree->SetBranchAddress("nevt",      &fNevt);
-    fTree->SetBranchAddress("dtcID",     &fDtcID);
+    if(!fisART)fTree->SetBranchAddress("dtcID",     &fDtcID);
     fTree->SetBranchAddress("currentDTCEventWindow", &fCurrentDTCEventWindow);
+    if(fisART)fTree->SetBranchAddress("hasFailures", &fHasFailures);
     fTree->SetBranchAddress("nhits",     &fNhits);
+    if(fisART) fTree->SetBranchAddress("dtcID",   fDtcIDarr);
     fTree->SetBranchAddress("boardID",   fBoardID);
     fTree->SetBranchAddress("linkID",    fLinkID);
     fTree->SetBranchAddress("chanID",    fChanID);
     fTree->SetBranchAddress("errflag",   fErrflag);
     fTree->SetBranchAddress("fff",       fFff);
     fTree->SetBranchAddress("timetot",   fTimetot);
-    fTree->SetBranchAddress("ewhit",     fEwhit);
+    if(!fisART)fTree->SetBranchAddress("ewhit",     fEwhit);
+    else       fTree->SetBranchAddress("ewhit",     fEwhitL);
     fTree->SetBranchAddress("peakpos",   fPeakpos);
     fTree->SetBranchAddress("peakval",   fPeakval);
+    if(fisART)fTree->SetBranchAddress("baseline",   fBaseline);
     fTree->SetBranchAddress("nofsamples", fNofsamples);
     fTree->SetBranchAddress("firstsample",fFirstsample);
     fTree->SetBranchAddress("nsamples",  &fNsamples);

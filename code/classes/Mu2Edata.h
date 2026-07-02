@@ -5,6 +5,7 @@
 // ROOT
 #include <TString.h>
 #include <TFile.h>
+#include <TDirectory.h>
 #include <TTree.h>
 #include <TObjArray.h>
 #include <TF1.h>
@@ -27,6 +28,7 @@ private:
         // Inputs
         TString fName;
         TFile *fIn;
+        Bool_t fisART;
         TSpline3 *fTemplate_spline;
         // Tree info
         // Input tree
@@ -41,16 +43,20 @@ private:
         Int_t fNevt;
         Int_t fDtcID;
         Long64_t fCurrentDTCEventWindow;
+        Int_t fHasFailures;
         Int_t fNhits;
+        Int_t *fDtcIDarr;
         Int_t *fBoardID;  // boardID[nhits]
         Int_t *fLinkID;   // linkID[nhits]
         Int_t *fChanID;   // chanID[nhits]
         Int_t *fErrflag;  // errflag[nhits]
         Int_t *fFff;      // fff[nhits]
         Int_t *fTimetot;  // timetot[nhits]
-        Int_t *fEwhit;    // ewhit[nhits]
+        Int_t *fEwhit;    // ewhit[nhits]       Binary version
+        Long64_t *fEwhitL;    // ewhit[nhits]      ART version
         Int_t *fPeakpos;  // peakpos[nhits]
         Int_t *fPeakval;  // peakval[nhits]
+        Float_t *fBaseline;     // baseline[nhits]
         Int_t *fNofsamples;     // nofsamples[nhits]
         Int_t *fFirstsample;    // firstsample[nhits]
         Int_t fNsamples;
@@ -75,6 +81,7 @@ private:
         //
         // Methods
         void InitTreeIn();      // Initialize input data tree
+        void DeleteArrays();    // Clear all tree arrays
         Double_t FitFun(Double_t *x, Double_t *par);
         void InitArrays();
 public:
