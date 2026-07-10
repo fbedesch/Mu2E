@@ -12,6 +12,10 @@
 //
 // STD
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
 //
 // Local
 #include "code/classes/Mu2Edata.h"
@@ -34,7 +38,7 @@ private:
         // Sphere   FW0 and pin selection 0/1      (FW00, FW01)
         // Disk and phi = -1 for diodes on the optical table after  the FW
         // Sphere   FW1 and pin selection 0/1      (FW10, FW11)
-        static const Int_t fNdiode  = 20;    // Number of pin diodes in whole system
+        static const Int_t fNdiode   = 20;    // Number of pin diodes in whole system
         static const Int_t fNsphere  = 10;    // Number of spheres in whole system
         // Disk on Nth diode
         Int_t fDisk[fNdiode] = {-2, -2, -1, -1,                 // Optical Board
@@ -64,6 +68,14 @@ private:
         // Channel descriptions
         //
         TString fDescr[fNdiode];
+        //
+        // Bundles
+        //
+        void ReadBundle(TString InFile);        // Readin bundle configuration from map
+        static const Int_t fNboard  = 161;      // Number of boards
+        static const Int_t fNchann  = 20;       // Number of Channels/board
+        Int_t fBoardChToBundle[fNboard][fNchann];
+
 public:
         //
         // Constructors
@@ -85,7 +97,7 @@ public:
         TString GetDescr (Int_t nD){ return fDescr [nD]; };     // Channel description
         Int_t GetDiode(Int_t nBoard, Int_t nChann);     // Return diode number from board and channel (-1 = fail)
         //
-        // Histograms
+        // Histograms for PIN
         //
         TCanvas *fC;            // Global histograms
         TCanvas *fCnv[fNdiode]; // two canvanses for each sphere
@@ -98,7 +110,19 @@ public:
         TH1D *fh_PkInt[fNdiode];// diode peak interpolation variable distribution
         TH1D *fh_PkCum[fNdiode];// Cumulative of the above
         //
-        void FillHist(Int_t Opt);  // Fill histograms (Opt = 0 binary files, 1 for ART)
-        void PrintHist();          // Display histograms
+        void FillPINhist(Int_t Opt);  // Fill histograms (Opt = 0 binary files, 1 for ART)
+        void PrintPINhist();          // Display histograms
+        //
+        // Histograms for bundles
+        //
+        static const Int_t fNbundle  = 16;      // Number of bundles
+        TCanvas *fCbdl[fNbundle];       // One canvas/bundle
+        TH1D *fhb_num [fNbundle];       // Number of fibers found in bundle
+        TH1D *fhb_Mean[fNbundle];       // Mean of highest bin in bundle
+        TH1D *fhb_Min [fNbundle];       // Smallest value in bundle
+        TH1D *fhb_Max [fNbundle];       // Highest value in bundle
+        //
+        void FillBundHist(Int_t Opt);  // Fill histograms (Opt = 0 binary files, 1 for ART)
+        void PrintBundHist();          // Display histograms
 };
 #endif

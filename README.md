@@ -50,3 +50,14 @@ ROOT>.L code/classes/Mu2Edata.cc+
 ROOT>.L code/classes/LaserConf.cc+
 ROOT>.L code/LaserView.C+
 ROOT>LaserView("../data/FWscan/mc2_120719_FW03.root")
+
+Laser bundle monitor
+=======================
+- Operate from main directory ~/Mu2E/Mu2E
+- Input data files in ../data/FWscan
+  example: ../data/FWscan/mc2_120719_FW03.root
+ROOT>
+ROOT>.L code/classes/Mu2Edata.cc+
+ROOT>.L code/classes/LaserConf.cc+
+ROOT>.L code/BundleView.C+
+ROOT>LaserView("../data/FWscan/mc2_120719_FW03.root")

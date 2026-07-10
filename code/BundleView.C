@@ -1,7 +1,7 @@
 
 #include "classes/LaserConf.h"
 
-void LaserView(TString fName)
+void BundleView(TString fName)
 {
     //
     // View basic features of all photodiodes in the laser system
@@ -9,8 +9,8 @@ void LaserView(TString fName)
     LaserConf LC(fName);
     //
     Int_t Opt = 1;  // Assume ART format
-    LC.FillPINhist(Opt);
-    std::cout<<"LaserView: Histograms filled"<<std::endl;
-    LC.PrintPINhist();
+    LC.FillBundHist(Opt);
+    std::cout<<"BundleView: Histograms filled"<<std::endl;
+    LC.PrintBundHist();
 
 }
