@@ -53,7 +53,7 @@ private:
                                   9, 10,  8, 11, 51, 48, 50, 49,
                                  89, 90, 88, 91,129,128,130,131} ;
         // Channel of Nth diode
-        Int_t fChann[fNdiode]= { 16, 17, 18, 19,                // was 4,5,16,17 until morning 21/7/2026
+        Int_t fChann[fNdiode]= { 18, 19, 16, 17,                // was 4,5,16,17 until morning 21/7/2026
                                  19, 19, 19, 19,  0,  0,  0,  0,
                                  19, 19, 19, 19,  0,  0,  0,  0};
         // Sphere of Nth diode (S or L)
