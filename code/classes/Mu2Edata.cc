@@ -52,7 +52,8 @@ Mu2Edata::Mu2Edata(TString InFile, Int_t Opt)
         //
         // Default array sizes
         fMaxHit = 3000;
-        fMaxSamp = 60000;
+        fMaxSamp = 200000;
+        fMaxWave = 100; // Max hit wave length
         InitArrays();
         InitTreeIn();
     }
@@ -60,6 +61,8 @@ Mu2Edata::Mu2Edata(TString InFile, Int_t Opt)
 void Mu2Edata::InitArrays()
 {
 // Data file
+    fMaxWave = 1000; // Max hit wave length
+    //
     if(fisART)fDtcIDarr= new Int_t[fMaxHit];       // dtcID[nhits]
     fBoardID = new Int_t[fMaxHit];       // boardID[nhits]
     fLinkID  = new Int_t[fMaxHit];       // linkID[nhits]
@@ -183,6 +186,33 @@ void Mu2Edata::InitTreeOut()
     foTree->Branch("pedOff", fPedOff, "pedOff[HitNr]/D");
 }
 //
+// Baseline calculation
+//
+void Mu2Edata::BaselineCalc(Int_t nh, Double_t &mBase, Double_t &sBase)
+{
+    //
+    // Calculate mean baseline and its sigma from first 10 waveform GetEntries
+    //
+    Int_t Length = GetNofsamples(nh);
+    Int_t *iWave = new Int_t[Length];
+    Double_t BaseV1 = 0.0;  // Bealine mean value
+    Double_t BaseV2 = 0.0;  // Mean of squares
+    //
+    iWave = GetWaveData(nh);
+    Int_t nBase = 10;
+    for(Int_t j=0; j<nBase; j++){
+        BaseV1 += (Double_t)iWave[j];
+        BaseV2 += TMath::Power((Double_t)iWave[j],2);
+    }
+    BaseV1 *= 1./(Double_t) nBase;  // <Baseline>
+    BaseV2 *= 1./(Double_t) nBase;  // <Baseline2>
+    //
+    delete [] iWave;
+    //
+    mBase = BaseV1;
+    sBase = TMath::Sqrt(BaseV2-BaseV1*BaseV1);
+}
+//
 // Accessors for input arrays
 Int_t Mu2Edata::GetBoardID(Int_t nh){
     if(nh<0 ||nh>fMaxHit){
@@ -257,6 +287,19 @@ Int_t Mu2Edata::GetPeakval(Int_t nh){
     //
     return fPeakval[nh];
 }
+Float_t Mu2Edata::GetBaseline(Int_t nh)
+{
+    if(fisART){
+        if(nh<0 ||nh>fMaxHit){
+            std::cerr<<"Error index out of limits!"<<std::endl;
+            return -1;
+        }
+        return fBaseline[nh];
+    }else{
+        std::cerr<<"Baseline available only in ART generated files."<<std::endl;
+        return -1.;
+    }
+}
 Int_t Mu2Edata::GetNofsamples(Int_t nh){
     if(nh<0 ||nh>fMaxHit){
         std::cerr<<"Error index out of limits!"<<std::endl;
@@ -280,6 +323,34 @@ Int_t Mu2Edata::GetADC(Int_t ns){
     }
     //
     return fADC[ns];
+}
+Int_t *Mu2Edata::GetWaveData(Int_t nh)
+{
+    //
+    // Initialize output
+    Int_t Length = GetNofsamples(nh);
+    Int_t *Wave = new Int_t[Length];
+    if(Length > fMaxWave){
+        std::cerr<<"Error wave length "<<Length<<" out of limits!"<<std::endl;
+        return Wave;
+    }
+    for(Int_t i=0; i<Length; i++)Wave[i] = 0;
+    //
+    if(nh<0 ||nh>fMaxHit){
+        std::cerr<<"Error index out of limits!"<<std::endl;
+        return Wave;
+    }
+    //
+    // Load Wave data
+    Int_t First = GetFirstsample(nh);
+    Int_t ind = 0;
+    for(Int_t i=First; i<First+Length; i++)
+    {
+            Wave[ind] = GetADC(i);
+            ind++;
+    }
+    //
+    return Wave;
 }
 //
 // Accessors for output arrays

@@ -38,6 +38,7 @@ private:
         //
         Int_t fMaxHit;
         Int_t fMaxSamp;
+        Int_t fMaxWave;
         Int_t fRun;
         Int_t fSubrun;
         Int_t fNevt;
@@ -99,6 +100,7 @@ public:
         void MakeFitROOT(TString RootFile);     // Build root file with fits
         void ReadFitROOT(TString RootFile);     // Read root file with fits
         //
+        void BaselineCalc(Int_t nh, Double_t &mBase, Double_t &sBase);
         // Accessors for input
         TString GetFileName() { return fName;};
         TTree *GetTree() { return fTree;};
@@ -123,6 +125,7 @@ public:
         Int_t GetFirstsample(Int_t nh);      // firstsample[nhits]
         Int_t GetNsamples() { return fNsamples;};
         Int_t GetADC(Int_t ns);            // ADC[nsamples]
+        Int_t *GetWaveData(Int_t nh);   // string of hit wave data
         //
         // Accessors for output
         TTree *GetOutTree() { return foTree;};
@@ -137,6 +140,7 @@ public:
         Int_t GetSampNr(Int_t nh);
         Int_t GetFirst(Int_t nh);
         Int_t GetTtot(Int_t nh);
+        Float_t GetBaseline(Int_t nh);  // Only if ART
         Double_t GetChi2(Int_t nh);
         Double_t GetNorm(Int_t nh);
         Double_t GetTimOff(Int_t nh);

@@ -53,7 +53,7 @@ private:
                                   9, 10,  8, 11, 51, 48, 50, 49,
                                  89, 90, 88, 91,129,128,130,131} ;
         // Channel of Nth diode
-        Int_t fChann[fNdiode]= {  4,   5,  16,  17,
+        Int_t fChann[fNdiode]= { 16, 17, 18, 19,                // was 4,5,16,17 until morning 21/7/2026
                                  19, 19, 19, 19,  0,  0,  0,  0,
                                  19, 19, 19, 19,  0,  0,  0,  0};
         // Sphere of Nth diode (S or L)
@@ -75,6 +75,9 @@ private:
         static const Int_t fNboard  = 161;      // Number of boards
         static const Int_t fNchann  = 20;       // Number of Channels/board
         Int_t fBoardChToBundle[fNboard][fNchann];
+        static const Int_t fNbundle  = 16;      // Number of bundles
+        Int_t fBundleToPIN1[fNbundle] = {4, 4, 6, 6, 8, 8, 10, 10, 12, 12, 14, 14, 16, 16, 18, 18};
+        Int_t fBundleToPIN2[fNbundle] = {5, 5, 7, 7, 9, 9, 11, 11, 13, 13, 15, 15, 17, 17, 19, 19};
 
 public:
         //
@@ -115,12 +118,16 @@ public:
         //
         // Histograms for bundles
         //
-        static const Int_t fNbundle  = 16;      // Number of bundles
         TCanvas *fCbdl[fNbundle];       // One canvas/bundle
         TH1D *fhb_num [fNbundle];       // Number of fibers found in bundle
+        // Uncorrected
         TH1D *fhb_Mean[fNbundle];       // Mean of highest bin in bundle
         TH1D *fhb_Min [fNbundle];       // Smallest value in bundle
         TH1D *fhb_Max [fNbundle];       // Highest value in bundle
+        // Baseline subtracted
+        TH1D *fhb_Meanb[fNbundle];       // Mean of highest bin in bundle
+        TH1D *fhb_Minb [fNbundle];       // Smallest value in bundle
+        TH1D *fhb_Maxb [fNbundle];       // Highest value in bundle
         //
         void FillBundHist(Int_t Opt);  // Fill histograms (Opt = 0 binary files, 1 for ART)
         void PrintBundHist();          // Display histograms

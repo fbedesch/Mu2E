@@ -92,19 +92,31 @@ LaserConf::LaserConf(TString InFile)
     for(Int_t i=0; i<fNbundle; i++){
         // histogram ID
         TString b_numID = Form("fhb_num_%d",i);
-        TString b_MeanID  = Form("fhb_Mean_%d",i);
+        TString b_MeanID  = Form("fhb_Mean_%d",i);  // Uncorrected
         TString b_MinID  = Form("fhb_Min_%d",i);
         TString b_MaxID  = Form("fhb_Max_%d",i);
+        //
+        TString b_MeanIDb  = Form("fhb_Mean_b_%d",i);    // Baseline subtracted
+        TString b_MinIDb  = Form("fhb_Min_b_%d",i);
+        TString b_MaxIDb  = Form("fhb_Max_b_%d",i);
         // histogram titles
         TString b_numTit  = Form("Number of fibers fired in bundle %d",i);
-        TString b_MeanTit = Form("Mean of fired fibers in bundle %d",i);
+        TString b_MeanTit = Form("Mean of fired fibers in bundle %d",i);    // Uncorrected
         TString b_MinTit  = Form("Lowest  fired fiber  in bundle %d",i);
         TString b_MaxTit  = Form("Highest fired fiber  in bundle %d",i);
+        //
+        TString b_MeanTitb = Form("Mean of fired fibers (baseline subtracted) in bundle %d",i); // Baseline subtracted
+        TString b_MinTitb  = Form("Lowest  fired fiber (baseline subtracted) in bundle %d",i);
+        TString b_MaxTitb  = Form("Highest fired fiber (baseline subtracted) in bundle %d",i);
         // histogram allocation
         fhb_num [i] = new TH1D(b_numID,b_numTit,  200,   0., 200.);
-        fhb_Mean[i] = new TH1D(b_MeanID,b_MeanTit,200,2000.,4000.);
-        fhb_Min [i] = new TH1D(b_MinID,b_MinTit,  200,2000.,4000.);
-        fhb_Max [i] = new TH1D(b_MaxID,b_MaxTit,  200,2000.,4000.);
+        fhb_Mean[i] = new TH1D(b_MeanID,b_MeanTit,210,2000.,4100.); // Uncorrected
+        fhb_Min [i] = new TH1D(b_MinID,b_MinTit,  210,2000.,4100.);
+        fhb_Max [i] = new TH1D(b_MaxID,b_MaxTit,  210,2000.,4100.);
+        //
+        fhb_Meanb[i] = new TH1D(b_MeanIDb,b_MeanTitb,210,0.,2100.); // Baseline subtracted
+        fhb_Minb [i] = new TH1D(b_MinIDb,b_MinTitb,  210,0.,2100.);
+        fhb_Maxb [i] = new TH1D(b_MaxIDb,b_MaxTitb,  210,0.,2100.);
     }
 
 }
@@ -268,6 +280,7 @@ void LaserConf::FillPINhist(Int_t Opt)
                 fh_PkInt[iDiode]->Fill(PkInt);
                 //
                 // Baseline stability
+                /*
                 Double_t BaseV1 = 0.0;  // Bealine mean value
                 Double_t BaseV2 = 0.0;  // Mean of baseline squared values
                 Int_t nBase = 10;
@@ -279,6 +292,9 @@ void LaserConf::FillPINhist(Int_t Opt)
                 BaseV1 *= 1./(Double_t) nBase;  // <Base>
                 BaseV2 *= 1./(Double_t) nBase;  // <Base^2>
                 Double_t BaseRMS = TMath::Sqrt(BaseV2-BaseV1*BaseV1);   // Baseline RMS
+                */
+                Double_t BaseV1; Double_t BaseRMS;
+                data.BaselineCalc(k, BaseV1, BaseRMS);
                 fh_base[iDiode]->Fill(BaseV1);
                 fh_bRMS[iDiode]->Fill(BaseRMS);
             }  // end if(iDiode) >= 0)
@@ -362,35 +378,79 @@ void LaserConf::FillBundHist(Int_t Opt)
         //
         Int_t MinHits = 1000;   // Minimum number of hits to select laser events
         Double_t bNum[fNbundle];     // Number of fibers hit
+        // Uncorrected
         Double_t bMean[fNbundle];    // Mean of peak values
         Double_t bMin [fNbundle];    // Minimum peak in bundle
         Double_t bMax [fNbundle];    // Maximum peak in bundle
+        // Baseline subtracted
+        Double_t bMean_b[fNbundle];    // Mean of peak values
+        Double_t bMin_b [fNbundle];    // Minimum peak in bundle
+        Double_t bMax_b [fNbundle];    // Maximum peak in bundle
         for(Int_t ibn=0; ibn<fNbundle; ibn++){
             bNum [ibn]  = 0.;
             bMean[ibn]  = 0.;
             bMin [ibn]  = 10000.;
             bMax [ibn]  = 0.;
+            //
+            bMean_b[ibn]  = 0.;
+            bMin_b [ibn]  = 10000.;
+            bMax_b [ibn]  = 0.;
         }
         if(Nhits>MinHits){          // Select laser events
             for(Int_t k=0; k<Nhits; k++){
                 Int_t nBoard  = data.GetBoardID(k);    // Get board
                 Int_t nChann  = data.GetChanID(k);     // Get Channel
                 Int_t iBundle = fBoardChToBundle[nBoard][nChann];      // Get bundle
+                //
+                // Process PINs
+                //
+
+                //
+                // Process bundles
+                //
                 if(iBundle >=0){
                     //std::cout<<"Event "<<i<<", Hit= "<<k<<", Board= "<<nBoard<<", Channel= "<<nChann
                     //<<", Bundle = "<<iBundle<<std::endl;
+                    //
+                    // Get baseline for subtraction
+                    Double_t mBase; Double_t sBase;
+                    data.BaselineCalc(k, mBase, sBase);
+                    /*
+                    Int_t nBase = 10;
+                    Double_t BaseV1 = 0.0;  // Bealine mean value
+                    Int_t Length = data.GetNofsamples(k);      // Wave length
+                    Int_t *iWave = new Int_t[Length];
+                    iWave = data.GetWaveData(k);
+                    for(Int_t j=0; j<nBase; j++)BaseV1 += (Double_t)iWave[j];
+                    BaseV1 *= 1./(Double_t) nBase;  // <Baseline>
+                    //
+                    delete [] iWave;
+                    */
+                    //
                     Double_t Pk0 = (Double_t) data.GetPeakval(k);
                     bNum[iBundle]++;
-                    bMean[iBundle] += Pk0;
-                    if(Pk0 < bMin[iBundle])bMin[iBundle] = Pk0;
-                    if(Pk0 > bMax[iBundle])bMax[iBundle] = Pk0;
+                    bMean  [iBundle] += Pk0;
+                    bMean_b[iBundle] += Pk0-mBase;
+                    if(Pk0 < bMin[iBundle]){
+                        bMin  [iBundle] = Pk0;
+                        bMin_b[iBundle] = Pk0-mBase;
+                    }
+                    if(Pk0 > bMax[iBundle]){
+                        bMax  [iBundle] = Pk0;
+                        bMax_b[iBundle] = Pk0-mBase;
+                    }
                 }
             } // end loop on hits
             for(Int_t ibn=0; ibn<fNbundle; ibn++){
-                fhb_num [ibn]->Fill(bNum[ibn]);
-                fhb_Min [ibn]->Fill(bMin[ibn]);
-                fhb_Max [ibn]->Fill(bMax[ibn]);
-                if(bNum[ibn]>0.)fhb_Mean[ibn]->Fill(bMean[ibn]/bNum[ibn]);
+                fhb_num  [ibn]->Fill(bNum  [ibn]);
+                fhb_Min  [ibn]->Fill(bMin  [ibn]);
+                fhb_Max  [ibn]->Fill(bMax  [ibn]);
+                fhb_Minb [ibn]->Fill(bMin_b[ibn]);
+                fhb_Maxb [ibn]->Fill(bMax_b[ibn]);
+                if(bNum[ibn]>0.){
+                    fhb_Mean [ibn]->Fill(bMean  [ibn]/bNum[ibn]);
+                    fhb_Meanb[ibn]->Fill(bMean_b[ibn]/bNum[ibn]);
+                }
             }
         } // End if on number of hits
     } // end main event loop
@@ -409,10 +469,19 @@ void LaserConf::PrintBundHist()
         fCbdl[i]->cd(1);
         fhb_num [i]->Draw();
         fCbdl[i]->cd(2);
+        fhb_Min [i]->SetLineColor(kGreen);
         fhb_Min [i]->Draw();
+        fhb_Max [i]->SetLineColor(kRed);
+        fhb_Max [i]->Draw("SAME");
+        fhb_Mean[i]->SetLineColor(kBlack);
+        fhb_Mean[i]->Draw("SAME");
         fCbdl[i]->cd(3);
-        fhb_Max [i]->Draw();
-        fCbdl[i]->cd(4);
-        fhb_Mean[i]->Draw();
+        fhb_Minb [i]->SetLineColor(kGreen);
+        fhb_Minb [i]->Draw();
+        fhb_Maxb [i]->SetLineColor(kRed);
+        fhb_Maxb [i]->Draw("SAME");
+        fhb_Meanb[i]->SetLineColor(kBlack);
+        fhb_Meanb[i]->Draw("SAME");
+        //fCbdl[i]->cd(4);
     }
 }

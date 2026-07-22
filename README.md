@@ -60,4 +60,4 @@ ROOT>
 ROOT>.L code/classes/Mu2Edata.cc+
 ROOT>.L code/classes/LaserConf.cc+
 ROOT>.L code/BundleView.C+
-ROOT>LaserView("../data/FWscan/mc2_120719_FW03.root")
+ROOT>BundleView("../data/FWscan/mc2_120719_FW03.root")
