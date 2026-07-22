@@ -109,6 +109,7 @@ public:
         TH1D *fh_base[fNdiode]; // diode baseline distribution
         TH1D *fh_bRMS[fNdiode]; // diode baseline RMS distribution
         TH1D *fh_peak[fNdiode]; // diode peak value distribution
+        TH1D *fh_peak_bs[fNdiode]; // diode peak value distribution (baseline subtracted)
         TH1D *fh_PkRatio[fNsphere]; // peak ratio of diodes in same sphere
         TH1D *fh_PkInt[fNdiode];// diode peak interpolation variable distribution
         TH1D *fh_PkCum[fNdiode];// Cumulative of the above

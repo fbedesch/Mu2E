@@ -27,27 +27,31 @@ LaserConf::LaserConf(TString InFile)
     //
     fh_base[0] = new TH1D("fh_base_0","Baseline FW00", 100, 1950., 2250.);
     fh_bRMS[0] = new TH1D("fh_bRMS_0","Baseline RMS FW00", 100, -5., 5.);
-    fh_peak[0] = new TH1D("fh_peak_0","Peak value FW00",100, 2100.,4100.);
+    fh_peak[0] = new TH1D("fh_peak_0","Peak value FW00",200, 2100.,4100.);
+    fh_peak_bs[0] = new TH1D("fh_peak_bs_0","Peak value FW00 (subtracted)",210, 0.,2100.);
     fh_PkInt[0] = new TH1D("fh_PkInt_0","Peak interpolation FW00",100, 0., 1.);
     fh_PkCum[0] = new TH1D("fh_PkCum_0","Peak interp. cumulative FW00",100, 0.,1.);
     fh_PkRatio[0] = new TH1D("fh_PkRatio_0","Peak ratio FW00/FW01", 100, 0.5, 1.5);
     //
     fh_base[1] = new TH1D("fh_base_1","Baseline FW01", 100, 1950., 2250.);
     fh_bRMS[1] = new TH1D("fh_bRMS_1","Baseline RMS FW01", 100, -5., 5.);
-    fh_peak[1] = new TH1D("fh_peak_1","Peak value FW01",100, 2100.,4100.);
+    fh_peak[1] = new TH1D("fh_peak_1","Peak value FW01",200, 2100.,4100.);
+    fh_peak_bs[1] = new TH1D("fh_peak_bs_1","Peak value FW01 (subtracted)",210, 0.,2100.);
     fh_PkInt[1] = new TH1D("fh_PkInt_1","Peak interpolation FW01",100, 0., 1.);
     fh_PkCum[1] = new TH1D("fh_PkCum_1","Peak interp. cumulative FW01",100, 0.,1.);
     //
     fh_base[2] = new TH1D("fh_base_2","Baseline FW10", 100, 1950., 2250.);
     fh_bRMS[2] = new TH1D("fh_bRMS_2","Baseline RMS FW10", 100, -5., 5.);
-    fh_peak[2] = new TH1D("fh_peak_2","Peak value FW10",100, 2100.,4100.);
+    fh_peak[2] = new TH1D("fh_peak_2","Peak value FW10",200, 2100.,4100.);
+    fh_peak_bs[2] = new TH1D("fh_peak_bs_2","Peak value FW10 (subtracted)",210, 0.,2100.);
     fh_PkInt[2] = new TH1D("fh_PkInt_2","Peak interpolation FW10",100, 0., 1.);
     fh_PkCum[2] = new TH1D("fh_PkCum_2","Peak interp. cumulative FW10",100, 0.,1.);
     fh_PkRatio[1] = new TH1D("fh_PkRatio_1","Peak ratio FW10/FW11", 100, 0.5, 1.5);
     //
     fh_base[3] = new TH1D("fh_base_3","Baseline FW11", 100, 1950., 2250.);
     fh_bRMS[3] = new TH1D("fh_bRMS_3","Baseline RMS FW11", 100, -5., 5.);
-    fh_peak[3] = new TH1D("fh_peak_3","Peak value FW11",100, 2100.,4100.);
+    fh_peak[3] = new TH1D("fh_peak_3","Peak value FW11",200, 2100.,4100.);
+    fh_peak_bs[3] = new TH1D("fh_peak_bs_3","Peak value FW11 (subtracted)",210, 0.,2100.);
     fh_PkInt[3] = new TH1D("fh_PkInt_3","Peak interpolation FW11",100, 0., 1.);
     fh_PkCum[3] = new TH1D("fh_PkCum_3","Peak interp. cumulative FW11",100, 0.,1.);
     //
@@ -63,7 +67,10 @@ LaserConf::LaserConf(TString InFile)
         fh_bRMS[i] = new TH1D(hRMS_ID,hRMS_Title, 100, -5., 5.);
         TString hPeakID = Form("fh_peak_%d",i);
         TString hPeakTitle = Form("Peak value board %d, channel %d",fBoard[i], fChann[i]);
-        fh_peak[i] = new TH1D(hPeakID,hPeakTitle,100, 2100.,4100.);
+        fh_peak[i] = new TH1D(hPeakID,hPeakTitle,200, 2100.,4100.);
+        TString hPeakIDbs = Form("fh_peak_bs_%d",i);
+        TString hPeakTitlebs = Form("Peak value board %d, channel %d (subtracted)",fBoard[i], fChann[i]);
+        fh_peak_bs[i] = new TH1D(hPeakIDbs,hPeakTitlebs,210, 0.,2100.);
         TString hPkIntID = Form("fh_PkInt_%d",i);
         TString hPkIntTitle = Form("Peak interpolation board %d, channel %d",fBoard[i], fChann[i]);
         fh_PkInt[i] = new TH1D(hPkIntID,hPkIntTitle,100, 0., 1.);
@@ -297,6 +304,7 @@ void LaserConf::FillPINhist(Int_t Opt)
                 data.BaselineCalc(k, BaseV1, BaseRMS);
                 fh_base[iDiode]->Fill(BaseV1);
                 fh_bRMS[iDiode]->Fill(BaseRMS);
+                fh_peak_bs[iDiode]->Fill(Pk0-BaseV1);
             }  // end if(iDiode) >= 0)
         }   // end hit loop
         //std::cout<<"End of hit loop"<<std::endl;
@@ -350,7 +358,8 @@ void LaserConf::PrintPINhist()
         fCnv[i]->cd(3);
         fh_peak[i]->Draw();
         fCnv[i]->cd(4);
-        fh_PkInt[i]->Draw();
+        fh_peak_bs[i]->Draw();
+        //fh_PkInt[i]->Draw();
     }
 }
 //
