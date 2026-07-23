@@ -268,8 +268,8 @@ void LaserConf::FillPINhist(Int_t Opt)
             Int_t Sphere = -1;
             if(iDiode >= 0){
                 // Found diode
-                std::cout<<"Hit= "<<k<<", Board= "<<nBoard<<", Channel= "<<nChann
-                <<", Diode = "<<iDiode<<std::endl;
+                //std::cout<<"Hit= "<<k<<", Board= "<<nBoard<<", Channel= "<<nChann
+                //<<", Diode = "<<iDiode<<std::endl;
                 Sphere = iDiode/2;   // Get Sphere
                 Double_t Pk0 = (Double_t) data.GetPeakval(k);
                 Peak(iDiode)  = Pk0;    // Store peak value
