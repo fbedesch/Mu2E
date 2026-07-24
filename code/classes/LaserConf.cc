@@ -481,19 +481,19 @@ void LaserConf::PrintBundHist()
         fCbdl[i]->cd(2);
         fhb_Min [i]->SetLineColor(kGreen);
         fhb_Min [i]->Draw();
-        fhb_Max [i]->SetLineColor(kRed);
+        fhb_Max [i]->SetLineColor(kMagenta);
         fhb_Max [i]->Draw("SAME");
         fhb_Mean[i]->SetLineColor(kBlack);
         fhb_Mean[i]->Draw("SAME");
         fCbdl[i]->cd(3);
-        fhb_Minb [i]->SetLineColor(kGreen);
-        fhb_Minb [i]->Draw();
-        fhb_Maxb [i]->SetLineColor(kRed);
-        fhb_Maxb [i]->Draw("SAME");
-        fhb_Meanb[i]->SetLineColor(kBlack);
         gStyle->SetOptFit();
+        fhb_Meanb[i]->SetLineColor(kBlack);
         fhb_Meanb[i]->Fit("gaus");
-        fhb_Meanb[i]->Draw("SAME");
+        fhb_Meanb[i]->Draw();
+        fhb_Minb [i]->SetLineColor(kGreen);
+        fhb_Minb [i]->Draw("SAME");
+        fhb_Maxb [i]->SetLineColor(kMagenta);
+        fhb_Maxb [i]->Draw("SAME");
         //fCbdl[i]->cd(4);
     }
 }
