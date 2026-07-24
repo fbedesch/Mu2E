@@ -355,6 +355,7 @@ void LaserConf::PrintPINhist()
                          fDisk[i], fPhi[i], fSphere[i].Data());
             fCnv[i] = new TCanvas(CnvId,CnvName,10*(i+1),10*(i+1),800,800);
         }
+        gStyle->SetOptStat(111111);
         fCnv[i]->Divide(2,2);
         fCnv[i]->cd(1);
         fh_base[i]->Draw();
