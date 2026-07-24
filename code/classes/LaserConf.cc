@@ -1,5 +1,6 @@
 #include "LaserConf.h"
 #include <TStyle.h>
+#include <TF1.h>
 
 LaserConf::LaserConf()
 {
@@ -494,7 +495,7 @@ void LaserConf::PrintBundHist()
         fCbdl[i]->cd(3);
         gStyle->SetOptFit();
         fhb_Meanb[i]->SetLineColor(kBlack);
-        fhb_Meanb[i]->Fit("gaus");
+        fhb_Meanb[i]->Fit("gaus","Q");
         fhb_Meanb[i]->Draw();
         fhb_Minb [i]->SetLineColor(kGreen);
         fhb_Minb [i]->Draw("SAME");
@@ -503,5 +504,14 @@ void LaserConf::PrintBundHist()
         fCbdl[i]->cd(4);
         fhb_Fibreb[i]->SetLineColor(kBlue);
         fhb_Fibreb[i]->Draw();
+    }
+    //
+    // Printout mean values of fit
+    //
+    std::cout<<"Bundle #\tPeak mean"<<std::endl;
+    for(Int_t i=0; i<fNbundle; i++){
+        TF1 *fitfun = fhb_Meanb[i]->GetFunction("gaus");
+        Double_t mean = fitfun->GetParameter(1);
+        std::cout<<"\t"<<i<<"\t"<<mean<<std::endl;
     }
 }
