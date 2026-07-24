@@ -116,6 +116,9 @@ LaserConf::LaserConf(TString InFile)
         TString b_MeanTitb = Form("Mean of fired fibers (baseline subtracted) in bundle %d",i); // Baseline subtracted
         TString b_MinTitb  = Form("Lowest  fired fiber (baseline subtracted) in bundle %d",i);
         TString b_MaxTitb  = Form("Highest fired fiber (baseline subtracted) in bundle %d",i);
+        //
+        TString b_FibreTitb = Form("All fired fibers (baseline subtracted) in bundle %d",i);
+        TString b_FibreIDb  = Form("fhb_Fibreb_%d",i);
         // histogram allocation
         fhb_num [i] = new TH1D(b_numID,b_numTit,  200,   0., 200.);
         fhb_Mean[i] = new TH1D(b_MeanID,b_MeanTit,210,2000.,4100.); // Uncorrected
@@ -125,6 +128,7 @@ LaserConf::LaserConf(TString InFile)
         fhb_Meanb[i] = new TH1D(b_MeanIDb,b_MeanTitb,210,0.,2100.); // Baseline subtracted
         fhb_Minb [i] = new TH1D(b_MinIDb,b_MinTitb,  210,0.,2100.);
         fhb_Maxb [i] = new TH1D(b_MaxIDb,b_MaxTitb,  210,0.,2100.);
+        fhb_Fibreb[i] = new TH1D(b_FibreIDb,b_FibreTitb,210,0.,2100.);
     }
 
 }
@@ -438,6 +442,7 @@ void LaserConf::FillBundHist(Int_t Opt)
                     */
                     //
                     Double_t Pk0 = (Double_t) data.GetPeakval(k);
+                    fhb_Fibreb[iBundle]->Fill(Pk0-mBase);
                     bNum[iBundle]++;
                     bMean  [iBundle] += Pk0;
                     bMean_b[iBundle] += Pk0-mBase;
@@ -494,6 +499,8 @@ void LaserConf::PrintBundHist()
         fhb_Minb [i]->Draw("SAME");
         fhb_Maxb [i]->SetLineColor(kMagenta);
         fhb_Maxb [i]->Draw("SAME");
-        //fCbdl[i]->cd(4);
+        fCbdl[i]->cd(4);
+        fhb_Fibreb[i]->SetLineColor(kBlue);
+        fhb_Fibreb[i]->Draw();
     }
 }

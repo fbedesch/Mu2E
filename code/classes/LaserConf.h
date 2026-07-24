@@ -129,6 +129,7 @@ public:
         TH1D *fhb_Meanb[fNbundle];       // Mean of highest bin in bundle
         TH1D *fhb_Minb [fNbundle];       // Smallest value in bundle
         TH1D *fhb_Maxb [fNbundle];       // Highest value in bundle
+        TH1D *fhb_Fibreb[fNbundle];      // All fiber values
         //
         void FillBundHist(Int_t Opt);  // Fill histograms (Opt = 0 binary files, 1 for ART)
         void PrintBundHist();          // Display histograms
