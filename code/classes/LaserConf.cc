@@ -1,4 +1,5 @@
 #include "LaserConf.h"
+#include <TStyle.h>
 
 LaserConf::LaserConf()
 {
@@ -490,6 +491,8 @@ void LaserConf::PrintBundHist()
         fhb_Maxb [i]->SetLineColor(kRed);
         fhb_Maxb [i]->Draw("SAME");
         fhb_Meanb[i]->SetLineColor(kBlack);
+        gStyle->SetOptFit();
+        fhb_Meanb[i]->Fit("gaus");
         fhb_Meanb[i]->Draw("SAME");
         //fCbdl[i]->cd(4);
     }
