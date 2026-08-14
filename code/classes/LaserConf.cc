@@ -1,6 +1,8 @@
 #include "LaserConf.h"
 #include <TStyle.h>
+#include <TAxis.h>
 #include <TF1.h>
+#include <TFitResult.h>
 
 LaserConf::LaserConf()
 {
@@ -19,6 +21,33 @@ LaserConf::LaserConf(TString InFile)
     // Setup descriptions
     InitConf();
     //
+    // Initialize board/chann to bundles
+    TString BundleMap = "./data/BundleMap.csv";
+    ReadBundle(BundleMap);
+    //
+    // Get mean&sigma of each fiber/diode
+    GetMeans();
+}
+void LaserConf::InitConf()
+{
+    //
+    // Channel descriptions
+    //
+    fDescr[0] = "Optical table before filter wheel FW00";
+    fDescr[1] = "Optical table before filter wheel FW01";
+    fDescr[2] = "Optical table after filter wheel FW10";
+    fDescr[3] = "Optical table after filter wheel FW10";
+    for(Int_t i=4; i<fNdiode; i++){
+        fDescr[i] = Form("Disk %d, Phi %d, Board %d, Channel %d, Sphere %s, Pin %s",
+                         fDisk[i], fPhi[i],fBoard[i], fChann[i], fSphere[i].Data(), fTopBot[i].Data());
+    }
+}
+//
+// Book PIN and diode plots
+//
+void LaserConf::BookPINplots()
+{
+    //
     //==============================================================
     //      PIN plots
     //
@@ -34,6 +63,8 @@ LaserConf::LaserConf(TString InFile)
     fh_PkInt[0] = new TH1D("fh_PkInt_0","Peak interpolation FW00",100, 0., 1.);
     fh_PkCum[0] = new TH1D("fh_PkCum_0","Peak interp. cumulative FW00",100, 0.,1.);
     fh_PkRatio[0] = new TH1D("fh_PkRatio_0","Peak ratio FW00/FW01", 100, 0.5, 1.5);
+    fh_PkRti[0]   = new TH1D("fh_PkRti_0","Peak over <FW laser>",400,0.,2.);
+    fh_PkCor[0]   = new TH1D("fh_PkCor_0","Peak value FW00 (corrected)",210,0.,2100.);
     //
     fh_base[1] = new TH1D("fh_base_1","Baseline FW01", 100, 1950., 2250.);
     fh_bRMS[1] = new TH1D("fh_bRMS_1","Baseline RMS FW01", 100, -5., 5.);
@@ -41,6 +72,8 @@ LaserConf::LaserConf(TString InFile)
     fh_peak_bs[1] = new TH1D("fh_peak_bs_1","Peak value FW01 (subtracted)",210, 0.,2100.);
     fh_PkInt[1] = new TH1D("fh_PkInt_1","Peak interpolation FW01",100, 0., 1.);
     fh_PkCum[1] = new TH1D("fh_PkCum_1","Peak interp. cumulative FW01",100, 0.,1.);
+    fh_PkRti[1]   = new TH1D("fh_PkRti_1","Peak over <FW laser>",400,0.,2.);
+    fh_PkCor[1]   = new TH1D("fh_PkCor_1","Peak value FW01 (corrected)",210,0.,2100.);
     //
     fh_base[2] = new TH1D("fh_base_2","Baseline FW10", 100, 1950., 2250.);
     fh_bRMS[2] = new TH1D("fh_bRMS_2","Baseline RMS FW10", 100, -5., 5.);
@@ -49,6 +82,8 @@ LaserConf::LaserConf(TString InFile)
     fh_PkInt[2] = new TH1D("fh_PkInt_2","Peak interpolation FW10",100, 0., 1.);
     fh_PkCum[2] = new TH1D("fh_PkCum_2","Peak interp. cumulative FW10",100, 0.,1.);
     fh_PkRatio[1] = new TH1D("fh_PkRatio_1","Peak ratio FW10/FW11", 100, 0.5, 1.5);
+    fh_PkRti[2]   = new TH1D("fh_PkRti_2","Peak over <FW laser>",400,0.,2.);
+    fh_PkCor[2]   = new TH1D("fh_PkCor_2","Peak value FW10 (corrected)",210,0.,2100.);
     //
     fh_base[3] = new TH1D("fh_base_3","Baseline FW11", 100, 1950., 2250.);
     fh_bRMS[3] = new TH1D("fh_bRMS_3","Baseline RMS FW11", 100, -5., 5.);
@@ -56,10 +91,11 @@ LaserConf::LaserConf(TString InFile)
     fh_peak_bs[3] = new TH1D("fh_peak_bs_3","Peak value FW11 (subtracted)",210, 0.,2100.);
     fh_PkInt[3] = new TH1D("fh_PkInt_3","Peak interpolation FW11",100, 0., 1.);
     fh_PkCum[3] = new TH1D("fh_PkCum_3","Peak interp. cumulative FW11",100, 0.,1.);
+    fh_PkRti[3]   = new TH1D("fh_PkRti_3","Peak over <FW laser>",400,0.,2.);
+    fh_PkCor[3]   = new TH1D("fh_PkCor_3","Peak value FW11 (corrected)",210,0.,2100.);
     //
     // Setup on detector histograms and canvases for on detector PIN diodes
     //
-    Int_t iSphere = 2;  // Sphere index
     for(Int_t i=4; i<fNdiode; i++){
         TString hBaseID = Form("fh_base_%d",i);
         TString hBaseTitle = Form("Baseline board %d, channel %d",fBoard[i], fChann[i]);
@@ -79,28 +115,36 @@ LaserConf::LaserConf(TString InFile)
         TString hPkCumID = Form("fh_PkCum_%d",i);
         TString hPkCumTitle = Form("Peak interp. cumulative board %d, channel %d",fBoard[i], fChann[i]);
         fh_PkCum[i] = new TH1D(hPkCumID,hPkCumTitle,100, 0.,1.);
+        TString hPkRtiID = Form("fh_PkRti_%d",i);
+        TString hPkRtiTitle = Form("Peak over laser FW00/01 mean %d, channel %d",fBoard[i], fChann[i]);
+        fh_PkRti[i] = new TH1D(hPkRtiID,hPkRtiTitle,400, 0.,2.);
+        TString hPkCorID = Form("fh_PkCor_%d",i);
+        TString hPkCorTitle = Form("Peak value (corrected) mean %d, channel %d",fBoard[i], fChann[i]);
+        fh_PkCor[i] = new TH1D(hPkCorID,hPkCorTitle,210, 0.,2100.);
+        //
         if(i%2 == 0){
+            Int_t iSphere = i/2;
             TString hPkRatioID = Form("fh_PkRatio_%d",iSphere);
             TString hPkRatioTitle = Form("Peak ratio board %d-ch %d/board %d-ch %d",
                                          fBoard[i],fChann[i],fBoard[i+1],fChann[i+1]);
-            fh_PkRatio[iSphere] = new TH1D("hPkRatioID","hPkRatioTitle", 100, 0.5, 1.5);
-            iSphere++;
+            fh_PkRatio[iSphere] = new TH1D(hPkRatioID,hPkRatioTitle, 100, 0.5, 1.5);
         }
     }
+}
+//
+// Book undle plots
+//
+void LaserConf::BookBundlePlots()
+{
     //
     //====================================================================================
     //  Bundle plots
     //
-    // Initialize board/chann to bundles
-    //
-    TString BundleMap = "./data/BundleMap.csv";
-    ReadBundle(BundleMap);
-    //
-    // Configure plots
-    //
     for(Int_t i=0; i<fNbundle; i++){
-        // histogram ID
+        //
+        // histogram IDs
         TString b_numID = Form("fhb_num_%d",i);
+        //
         TString b_MeanID  = Form("fhb_Mean_%d",i);  // Uncorrected
         TString b_MinID  = Form("fhb_Min_%d",i);
         TString b_MaxID  = Form("fhb_Max_%d",i);
@@ -108,8 +152,14 @@ LaserConf::LaserConf(TString InFile)
         TString b_MeanIDb  = Form("fhb_Mean_b_%d",i);    // Baseline subtracted
         TString b_MinIDb  = Form("fhb_Min_b_%d",i);
         TString b_MaxIDb  = Form("fhb_Max_b_%d",i);
+        TString b_FibreIDb  = Form("fhb_Fibreb_%d",i);
+        TString b_FibreIDbc  = Form("fhb_Fibrebc_%d",i);
+        //
+        TString b_MeanIDc    = Form("fhb_Meanbc_%d",i);    // Laser corrected
+        TString b_MeanRtiID  = Form("fh_MbRti_%d",i);
         // histogram titles
         TString b_numTit  = Form("Number of fibers fired in bundle %d",i);
+        //
         TString b_MeanTit = Form("Mean of fired fibers in bundle %d",i);    // Uncorrected
         TString b_MinTit  = Form("Lowest  fired fiber  in bundle %d",i);
         TString b_MaxTit  = Form("Highest fired fiber  in bundle %d",i);
@@ -117,9 +167,10 @@ LaserConf::LaserConf(TString InFile)
         TString b_MeanTitb = Form("Mean of fired fibers (baseline subtracted) in bundle %d",i); // Baseline subtracted
         TString b_MinTitb  = Form("Lowest  fired fiber (baseline subtracted) in bundle %d",i);
         TString b_MaxTitb  = Form("Highest fired fiber (baseline subtracted) in bundle %d",i);
-        //
         TString b_FibreTitb = Form("All fired fibers (baseline subtracted) in bundle %d",i);
-        TString b_FibreIDb  = Form("fhb_Fibreb_%d",i);
+        TString b_MeanTitc    = Form("Laser corrected mean of bundle %d",i);    // Laser corrected
+        TString b_MeanRtiTit  = Form("Ratio mean peak/laser in bundle %d",i);
+        TString b_FibreTitbc = Form("All fired fibers (corrected) in bundle %d",i);
         // histogram allocation
         fhb_num [i] = new TH1D(b_numID,b_numTit,  200,   0., 200.);
         fhb_Mean[i] = new TH1D(b_MeanID,b_MeanTit,210,2000.,4100.); // Uncorrected
@@ -130,21 +181,10 @@ LaserConf::LaserConf(TString InFile)
         fhb_Minb [i] = new TH1D(b_MinIDb,b_MinTitb,  210,0.,2100.);
         fhb_Maxb [i] = new TH1D(b_MaxIDb,b_MaxTitb,  210,0.,2100.);
         fhb_Fibreb[i] = new TH1D(b_FibreIDb,b_FibreTitb,210,0.,2100.);
-    }
-
-}
-void LaserConf::InitConf()
-{
-    //
-    // Channel descriptions
-    //
-    fDescr[0] = "Optical table before filter wheel FW00";
-    fDescr[1] = "Optical table before filter wheel FW01";
-    fDescr[2] = "Optical table after filter wheel FW10";
-    fDescr[3] = "Optical table after filter wheel FW10";
-    for(Int_t i=4; i<fNdiode; i++){
-        fDescr[i] = Form("Disk %d, Phi %d, Board %d, Channel %d, Sphere %s, Pin %s",
-                         fDisk[i], fPhi[i],fBoard[i], fChann[i], fSphere[i].Data(), fTopBot[i].Data());
+        //
+        fh_MbRti[i] = new TH1D(b_MeanRtiID,b_MeanRtiTit,1000,0.,2.);    // Laser corrected
+        fhb_Fibrebc[i] = new TH1D(b_FibreIDbc,b_FibreTitbc,210,0.,2100.);
+        fhb_Meanbc[i] = new TH1D(b_MeanIDc, b_MeanTitc,210,0.,2100.);
     }
 }
 //
@@ -160,6 +200,7 @@ void LaserConf::ReadBundle(TString InFile)
         std::cerr << "Error opening bundle configuration file!"<<InFile.Data() << std::endl;
         return;
     }
+    std::cout<<"LaserConf::ReadBundle: read bundle configuration file"<<std::endl;
     //
     // Arrays for storing data
     //
@@ -226,6 +267,82 @@ void LaserConf::ReadBundle(TString InFile)
     }
 }
 //
+// Get mean&sigma of each fiber&diode
+void::LaserConf::GetMeans()
+{
+    //
+    // Open input file
+    // Opt = 0 for binary (default) or 1 for ART
+    Int_t Opt = 1;  // Assume ART data
+    Mu2Edata data(fName, Opt);
+    //
+    // Initialize arrays
+    for(Int_t ib=0; ib<fNboard; ib++){
+        for(Int_t ic=0; ic<fNchann; ic++){
+            fBoardChToMean [ib][ic] = 0.0;     // Peak mean  associated to board/channel
+            fBoardChToSigma[ib][ic] = 0.0;     // Peak sigma associated to board/channel
+            fBoardChToNum  [ib][ic] = 0.0;     // Nr. of events associated to board/channel
+            // Mark non existent channels
+            if(fBoardChToBundle[ib][ic] == -1){
+                fBoardChToMean [ib][ic] = -1.0;
+                fBoardChToSigma[ib][ic] = -1.0;
+                fBoardChToNum  [ib][ic] = -1.0;
+            }
+        }
+    }
+    //
+    // Main event loop
+    //
+    TTree *tree = data.GetTree();
+    Long64_t nentries = (Int_t) tree->GetEntries();
+    cout<<"Nentries= "<<nentries<<endl;
+    for (Long64_t i = 0; i <nentries; ++i) {
+        tree->GetEntry(i);    // Load new entry
+        Int_t Nhits = data.GetNhits();
+        Int_t Nsamp = data.GetNsamples();
+        if(i%1000 == 0)std::cout<<"LaserConf::GetMeans: nev="<<i<<", Nhit= "<<Nhits
+            <<", Nsamp= "<<Nsamp<<std::endl;
+        //
+        Int_t MinHits = 1000;   // Minimum number of hits to select laser events
+        if(Nhits>MinHits){      // Laser event
+            for(Int_t k=0; k<Nhits; k++){      // Scan hits
+                Int_t nBoard  = data.GetBoardID(k);    // Get board
+                Int_t nChann  = data.GetChanID(k);     // Get Channel
+                //
+                // Get baseline for subtraction
+                Double_t mBase; Double_t sBase;
+                data.BaselineCalc(k, mBase, sBase);
+                Double_t pk = (Double_t) data.GetPeakval(k)-mBase;  // Get peak value
+                //
+                fBoardChToNum   [nBoard][nChann]++;          // Increment nr events detected
+                fBoardChToMean  [nBoard][nChann] += pk;      // Increment peak sum
+                fBoardChToSigma [nBoard][nChann] += pk*pk;   // Increment peak^2 sum
+            } // End loop on hits
+        }
+    } // End loop on events
+    //
+    // Means and sigmas
+    //
+    for(Int_t ib=0; ib<fNboard; ib++){
+        for(Int_t ic=0; ic<fNchann; ic++){
+            if(fBoardChToNum[ib][ic] > 0.0){
+                fBoardChToMean[ib][ic] /= fBoardChToNum[ib][ic];
+                Double_t x2 = fBoardChToSigma[ib][ic]/fBoardChToNum[ib][ic];
+                fBoardChToSigma [ib][ic] = TMath::Sqrt(x2-TMath::Power(fBoardChToMean[ib][ic],2));
+            }
+        }
+    }
+    //
+    // Reference mean is mean of diodes 0 and 1
+    //
+    Int_t B0 = fBoard[0];   // Board of PIN 0
+    Int_t B1 = fBoard[1];   // Board of PIN 1
+    Int_t C0 = fChann[0];   // Channel of PIN 0
+    Int_t C1 = fChann[1];   // Channel of PIN 1
+    //
+    fRefMean = 0.5*(fBoardChToMean[B0][C0]+fBoardChToMean[B1][C1]);
+}
+//
 LaserConf::~LaserConf()
 {
 }
@@ -246,6 +363,9 @@ Int_t LaserConf::GetDiode(Int_t nBoard, Int_t nChann)
 void LaserConf::FillPINhist(Int_t Opt)
 {
     //
+    // Book PIN/Diode plots
+    BookPINplots();
+    //
     // Open input file
     // Opt = 0 for binary (default) or 1 for ART
     Mu2Edata data(fName, Opt);
@@ -254,21 +374,32 @@ void LaserConf::FillPINhist(Int_t Opt)
     //
     TTree *tree = data.GetTree();
     Long64_t nentries = (Int_t) tree->GetEntries();
-    cout<<"Nentries= "<<nentries<<endl;
+    cout<<"LaserConf::FillPINhist: Nentries= "<<nentries<<endl;
     for (Long64_t i = 0; i <nentries; ++i) {
         tree->GetEntry(i);    // Load new entry
         Int_t Nhits = data.GetNhits();
         Int_t Nsamp = data.GetNsamples();
-        if(i%1000 == 0)std::cout<<"nev="<<i<<", Nhit= "<<Nhits
+        if(i%1000 == 0)std::cout<<"LasrConf::FillPINhist: nev="<<i<<", Nhit= "<<Nhits
             <<", Nsamp= "<<Nsamp<<std::endl;
         fh_nHit ->Fill((Double_t)Nhits);      // Fill histograms
         fh_nSamp->Fill((Double_t)Nsamp);
         TVectorD Peak(fNdiode); Peak.Zero();            // Store peak values
+        TVectorD PeakB(fNdiode); PeakB.Zero();            // Store peak values (subtracted)
+        Double_t meanD = 0.;    // Mean of diodes before FW
+        Double_t NrD   = 0.;    // Nr. of found diodes before the FW
         //
         for(Int_t k=0; k<Nhits; k++){
             Int_t nBoard = data.GetBoardID(k);    // Get board
             Int_t nChann = data.GetChanID(k);    // Get Channel
             Int_t iDiode = GetDiode(nBoard, nChann);      // Get pin diode
+            if(iDiode == 0 || iDiode == 1){
+                Double_t BaseV1; Double_t BaseRMS;
+                data.BaselineCalc(k, BaseV1, BaseRMS);
+                NrD++;
+                meanD += (Double_t) data.GetPeakval(k)-BaseV1;
+                //std::cout<<"iDiode= "<<iDiode<<", BaseV1= "<<BaseV1<<
+                //", Peak= "<<data.GetPeakval(k)<<", meanD= "<<meanD<<std::endl;
+            }
             //std::cout<<"Hit= "<<k<<", Board= "<<nBoard<<", Channel= "<<nChann
             //<<", Diode = "<<iDiode<<std::endl;
             Int_t Sphere = -1;
@@ -282,6 +413,13 @@ void LaserConf::FillPINhist(Int_t Opt)
                 Int_t tMax   = data.GetPeakpos(k);                // Peak position
                 fh_peak[iDiode]->Fill(Pk0);
                 //
+                Double_t BaseV1; Double_t BaseRMS;
+                data.BaselineCalc(k, BaseV1, BaseRMS);
+                PeakB(iDiode) = Pk0-BaseV1;
+                fh_base[iDiode]->Fill(BaseV1);
+                fh_bRMS[iDiode]->Fill(BaseRMS);
+                fh_peak_bs[iDiode]->Fill(Pk0-BaseV1);
+                //
                 // Get waveform data
                 Int_t First  = data.GetFirstsample(k);     // Wave start
                 Int_t Length = data.GetNofsamples(k);      // Wave length
@@ -292,41 +430,53 @@ void LaserConf::FillPINhist(Int_t Opt)
                 Double_t PkInt = 2.*TMath::ATan((Pk0-PkMin)/(Pk0-PkMax))/TMath::Pi();
                 fh_PkInt[iDiode]->Fill(PkInt);
                 //
-                // Baseline stability
-                /*
-                Double_t BaseV1 = 0.0;  // Bealine mean value
-                Double_t BaseV2 = 0.0;  // Mean of baseline squared values
-                Int_t nBase = 10;
-                for(Int_t j=First; j<First+nBase; j++){
-                    Double_t BaseV = (Double_t) data.GetADC(j); // baseline value at location j
-                    BaseV1 += BaseV;
-                    BaseV2 += BaseV*BaseV;
-                }
-                BaseV1 *= 1./(Double_t) nBase;  // <Base>
-                BaseV2 *= 1./(Double_t) nBase;  // <Base^2>
-                Double_t BaseRMS = TMath::Sqrt(BaseV2-BaseV1*BaseV1);   // Baseline RMS
-                */
-                Double_t BaseV1; Double_t BaseRMS;
-                data.BaselineCalc(k, BaseV1, BaseRMS);
-                fh_base[iDiode]->Fill(BaseV1);
-                fh_bRMS[iDiode]->Fill(BaseRMS);
-                fh_peak_bs[iDiode]->Fill(Pk0-BaseV1);
             }  // end if(iDiode) >= 0)
         }   // end hit loop
         //std::cout<<"End of hit loop"<<std::endl;
         //
         //
-        // Fill peak ratios in same sphere if available
+        // Fill peak ratios in same sphere if available and plot correction ratios
         Int_t iSphere = 0;
+        // Peak over box laser
+        if(NrD > 0.0)meanD = meanD/NrD;
         for(Int_t iD=0; iD<fNdiode; iD++){
+            if(meanD>0.){
+                Double_t R = PeakB(iD)/meanD;
+                //std::cout<<"NrD= "<<NrD<<", MeanD = "<<meanD<<", R= "<<R<<std::endl;
+                if(PeakB(iD)>0.){
+                    fh_PkRti[iD]->Fill(R);
+                    fh_PkCor[iD]->Fill(PeakB(iD)*fRefMean/meanD);
+                }
+            }
             if(iD%2 == 0){
-                if(Peak(iD)*Peak(iD+1)>0.)fh_PkRatio[iSphere]->Fill(Peak(iD)/Peak(iD+1));
+                if(Peak(iD)*Peak(iD+1)>0.)fh_PkRatio[iSphere]->Fill(PeakB(iD)/PeakB(iD+1));
                 iSphere++;
             }
         }
         //std::cout<<"End event "<<i<<std::endl;
     } // end event loop
     //std::cout<<"End event loop"<<std::endl;
+}
+void LaserConf::LaserCorrection(TH1D *hRatio, TH1D *hPeakBs, TH1D *hCorr){
+        //
+        // Correct peak histogram for laser fluctuations
+        // while maintaining the same mean
+        // Input:
+        //      hRatio   = plot of peak/mean FW00/FE01
+        //      hPeak_bs = plot of peak baseline subtracted
+        //      hCorr    = plot of peak corrected for laser fluctuations
+        //
+        Int_t binR = hRatio->GetNbinsX();       // # bin in ratio histogram
+        //Int_t binC = fh_PkCor[i]->GetNbinsX();
+        Double_t meanQ = hPeakBs->GetMean();    // Uncorrected peak mean
+        Double_t meanR = hRatio ->GetMean();    // Mean of ratio histogram
+        TAxis *R_Axis  = hRatio ->GetXaxis();
+        for(Int_t k=1; k<=binR; k++){
+            Double_t Cont = (Double_t) hRatio->GetBinContent(k);
+            Double_t xR = R_Axis->GetBinCenter(k);
+            Double_t xQcor = xR*meanQ/meanR;
+            hCorr->Fill(xQcor, Cont);
+        }
 }
 //
 // Display histograms
@@ -365,16 +515,48 @@ void LaserConf::PrintPINhist()
         fCnv[i]->cd(3);
         fh_peak[i]->Draw();
         fCnv[i]->cd(4);
-        fh_peak_bs[i]->Draw();
-        //fh_PkInt[i]->Draw();
+        //
+        // Build corrected histogram
+        //LaserCorrection(fh_PkRti[i], fh_peak_bs[i], fh_PkCor[i]);
+        fh_PkCor[i]->SetLineColor(kRed);
+        //fh_PkRti[i]->Draw();
+        fh_PkCor[i]->Draw("HIST");
+        fh_peak_bs[i]->Draw("SAME");
     }
+    //
+    // Display ratio of diodes in each sphere
+    //
+    TCanvas *Csph0 = new TCanvas("Csph0","First 4 spheres",300,300,900,900);
+    Csph0->Divide(2,2);
+    for(Int_t i=0; i<4; i++){
+        Csph0->cd(i+1);
+        fh_PkRatio[i]->Draw();
+    }
+    TCanvas *Csph1 = new TCanvas("Csph1","Spheres 5 to 8 ",330,330,900,900);
+    Csph1->Divide(2,2);
+    for(Int_t i=4; i<8; i++){
+        Csph1->cd(i-3);
+        fh_PkRatio[i]->Draw();
+    }
+    TCanvas *Csph2 = new TCanvas("Csph2","Last 2 spheres         ",360,360,900,600);
+    Csph2->Divide(2,1);
+    for(Int_t i=8; i<10; i++){
+        Csph2->cd(i-7);
+        fh_PkRatio[i]->Draw();
+    }
+
 }
+//
+//===================================================================================
 //
 // Bundle histogram filling and printing
 //
 // Fill them
 void LaserConf::FillBundHist(Int_t Opt)
 {
+    //
+    // Book bundle plots
+    BookBundlePlots();
     //
     // Open input file
     // Opt = 0 for binary (default) or 1 for ART
@@ -384,12 +566,12 @@ void LaserConf::FillBundHist(Int_t Opt)
     //
     TTree *tree = data.GetTree();
     Long64_t nentries = (Int_t) tree->GetEntries();
-    cout<<"Nentries= "<<nentries<<endl;
+    cout<<"LaserConf::FillBundHist: Nentries= "<<nentries<<endl;
     for (Long64_t i = 0; i <nentries; ++i) {
         tree->GetEntry(i);    // Load new entry
         Int_t Nhits = data.GetNhits();
         Int_t Nsamp = data.GetNsamples();
-        if(i%1000 == 0)std::cout<<"nev="<<i<<", Nhit= "<<Nhits
+        if(i%1000 == 0)std::cout<<"LaserConf::FillBundHist: nev="<<i<<", Nhit= "<<Nhits
             <<", Nsamp= "<<Nsamp<<std::endl;
         //
         Int_t MinHits = 1000;   // Minimum number of hits to select laser events
@@ -399,55 +581,66 @@ void LaserConf::FillBundHist(Int_t Opt)
         Double_t bMin [fNbundle];    // Minimum peak in bundle
         Double_t bMax [fNbundle];    // Maximum peak in bundle
         // Baseline subtracted
-        Double_t bMean_b[fNbundle];    // Mean of peak values
-        Double_t bMin_b [fNbundle];    // Minimum peak in bundle
-        Double_t bMax_b [fNbundle];    // Maximum peak in bundle
+        Double_t bMean_b [fNbundle];    // Mean of peak values
+        Double_t bMean_bc[fNbundle];    // Mean of peak values (corrected)
+        Double_t bMin_b  [fNbundle];    // Minimum peak in bundle
+        Double_t bMax_b  [fNbundle];    // Maximum peak in bundle
         for(Int_t ibn=0; ibn<fNbundle; ibn++){
             bNum [ibn]  = 0.;
             bMean[ibn]  = 0.;
             bMin [ibn]  = 10000.;
             bMax [ibn]  = 0.;
             //
-            bMean_b[ibn]  = 0.;
-            bMin_b [ibn]  = 10000.;
-            bMax_b [ibn]  = 0.;
+            bMean_b [ibn]  = 0.;
+            bMean_bc[ibn]  = 0.;
+            bMin_b  [ibn]  = 10000.;
+            bMax_b  [ibn]  = 0.;
         }
+        Double_t meanD = 0.;    // Mean of diodes before FW
+        Double_t NrD   = 0.;    // Nr. of found diodes before the FW
+        //
         if(Nhits>MinHits){          // Select laser events
+            //
+            // Get mean of reference diodes first
+            for(Int_t k=0; k<Nhits; k++){
+                Int_t nBoard  = data.GetBoardID(k);    // Get board
+                Int_t nChann  = data.GetChanID(k);     // Get Channel
+                //
+                // Process PINs
+                //
+                Int_t iDiode = GetDiode(nBoard, nChann);      // Get pin diode
+                if(iDiode ==0 || iDiode == 1){
+                    NrD++;
+                    Double_t mBase; Double_t sBase;
+                    data.BaselineCalc(k, mBase, sBase);
+                    meanD += (Double_t) data.GetPeakval(k)-mBase;
+                }
+                if(NrD >= 2) continue;
+            }
+            if(NrD > 0) meanD = meanD/NrD;
+            //
+            // then deal with all bundles
             for(Int_t k=0; k<Nhits; k++){
                 Int_t nBoard  = data.GetBoardID(k);    // Get board
                 Int_t nChann  = data.GetChanID(k);     // Get Channel
                 Int_t iBundle = fBoardChToBundle[nBoard][nChann];      // Get bundle
                 //
-                // Process PINs
-                //
-
-                //
                 // Process bundles
                 //
                 if(iBundle >=0){
-                    //std::cout<<"Event "<<i<<", Hit= "<<k<<", Board= "<<nBoard<<", Channel= "<<nChann
-                    //<<", Bundle = "<<iBundle<<std::endl;
                     //
                     // Get baseline for subtraction
                     Double_t mBase; Double_t sBase;
                     data.BaselineCalc(k, mBase, sBase);
-                    /*
-                    Int_t nBase = 10;
-                    Double_t BaseV1 = 0.0;  // Bealine mean value
-                    Int_t Length = data.GetNofsamples(k);      // Wave length
-                    Int_t *iWave = new Int_t[Length];
-                    iWave = data.GetWaveData(k);
-                    for(Int_t j=0; j<nBase; j++)BaseV1 += (Double_t)iWave[j];
-                    BaseV1 *= 1./(Double_t) nBase;  // <Baseline>
-                    //
-                    delete [] iWave;
-                    */
                     //
                     Double_t Pk0 = (Double_t) data.GetPeakval(k);
-                    fhb_Fibreb[iBundle]->Fill(Pk0-mBase);
+                    fhb_Fibreb [iBundle]->Fill(Pk0-mBase);
+                    if(meanD> 0.)fhb_Fibrebc[iBundle]->Fill((Pk0-mBase)*fRefMean/meanD);
+
                     bNum[iBundle]++;
-                    bMean  [iBundle] += Pk0;
-                    bMean_b[iBundle] += Pk0-mBase;
+                    bMean   [iBundle] += Pk0;
+                    bMean_b [iBundle] += Pk0-mBase;
+                    if(meanD>0.)bMean_bc[iBundle] += (Pk0-mBase)*fRefMean/meanD;
                     if(Pk0 < bMin[iBundle]){
                         bMin  [iBundle] = Pk0;
                         bMin_b[iBundle] = Pk0-mBase;
@@ -458,6 +651,8 @@ void LaserConf::FillBundHist(Int_t Opt)
                     }
                 }
             } // end loop on hits
+            //cout<<"FillBundle: end loop on hits"<<endl;
+            //
             for(Int_t ibn=0; ibn<fNbundle; ibn++){
                 fhb_num  [ibn]->Fill(bNum  [ibn]);
                 fhb_Min  [ibn]->Fill(bMin  [ibn]);
@@ -465,8 +660,14 @@ void LaserConf::FillBundHist(Int_t Opt)
                 fhb_Minb [ibn]->Fill(bMin_b[ibn]);
                 fhb_Maxb [ibn]->Fill(bMax_b[ibn]);
                 if(bNum[ibn]>0.){
-                    fhb_Mean [ibn]->Fill(bMean  [ibn]/bNum[ibn]);
-                    fhb_Meanb[ibn]->Fill(bMean_b[ibn]/bNum[ibn]);
+                    Double_t Mean = bMean_b[ibn]/bNum[ibn];
+                    if(NrD>0.){
+                        Double_t Rti = Mean/meanD;
+                        fh_MbRti[ibn]->Fill(Rti);
+                        fhb_Meanbc[ibn]->Fill(bMean_bc[ibn]/bNum[ibn]);
+                    }
+                    fhb_Mean  [ibn]->Fill(bMean   [ibn]/bNum[ibn]);
+                    fhb_Meanb [ibn]->Fill(bMean_b [ibn]/bNum[ibn]);
                 }
             }
         } // End if on number of hits
@@ -494,24 +695,33 @@ void LaserConf::PrintBundHist()
         fhb_Mean[i]->Draw("SAME");
         fCbdl[i]->cd(3);
         gStyle->SetOptFit();
+        //LaserCorrection(fh_MbRti[i], fhb_Meanb[i], fh_MbCor[i]);
+        fhb_Meanbc[i]->SetLineColor(kRed);
+        fhb_Meanbc[i]->Draw();
         fhb_Meanb[i]->SetLineColor(kBlack);
-        fhb_Meanb[i]->Fit("gaus","Q");
-        fhb_Meanb[i]->Draw();
+        fhb_Meanb[i]->Draw("SAME");
         fhb_Minb [i]->SetLineColor(kGreen);
         fhb_Minb [i]->Draw("SAME");
         fhb_Maxb [i]->SetLineColor(kMagenta);
         fhb_Maxb [i]->Draw("SAME");
         fCbdl[i]->cd(4);
-        fhb_Fibreb[i]->SetLineColor(kBlue);
-        fhb_Fibreb[i]->Draw();
+        fhb_Fibreb [i]->SetLineColor(kBlue);
+        fhb_Fibrebc[i]->SetLineColor(kRed);
+        fhb_Fibrebc[i]->Draw();
+        fhb_Fibreb [i]->Draw("SAME");
     }
     //
     // Printout mean values of fit
     //
-    std::cout<<"Bundle #\tPeak mean"<<std::endl;
+    std::cout<<"Bundle #\tPeak mean\tSigma\tMean Corr.\tSigma Corr."<<std::endl;
     for(Int_t i=0; i<fNbundle; i++){
-        TF1 *fitfun = fhb_Meanb[i]->GetFunction("gaus");
-        Double_t mean = fitfun->GetParameter(1);
-        std::cout<<"\t"<<i<<"\t"<<mean<<std::endl;
+        TFitResultPtr r = fhb_Meanb[i]->Fit("gaus","SQN");
+        Double_t mean = r->Parameter(1);
+        Double_t sigma = r->Parameter(2);
+        TFitResultPtr rc = fhb_Meanbc[i]->Fit("gaus","SQN");
+        Double_t meanc = rc->Parameter(1);
+        Double_t sigmac = rc->Parameter(2);
+        std::cout<<"\t"<<i<<"\t"<<mean<<"\t\t"<<sigma
+        <<"\t\t"<<meanc<<"\t\t"<<sigmac<<std::endl;
     }
 }

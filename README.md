@@ -42,6 +42,10 @@ ROOT>PlotFitData("Fit_D1P1F2_fw06.root")
 //
 Laser PIN diode monitor
 =======================
+->Description:
+Plots baseline and its standard deviation, value, value baseline subtracted and value baseline subtracted and corrected for the mean of the two PIN diodes in the optical box before the filter wheel.
+Plots the ratio of the two diodes in every sphere.
+-> Instructions:
 - Operate from main directory ~/Mu2E/Mu2E
 - Input data files in ../data/FWscan
   example: ../data/FWscan/mc2_120719_FW03.root
@@ -53,6 +57,12 @@ ROOT>LaserView("../data/FWscan/mc2_120719_FW03.root")
 
 Laser bundle monitor
 =======================
+->Description:
+Plots the number of fibers fired, the mean of all fibers, the lowest and the highest with and without baseline subtraction, and the distribution of all fiber values in each bondle.
+After correction for laser fluctuations as in the diode monitor case, the values of all fibers and their mean in every bundle is also displayed.
+The bundle means with and without correction are also fit with gaussians and mean values and standard deviations are printed for every bundle.
+
+-> Instructions:
 - Operate from main directory ~/Mu2E/Mu2E
 - Input data files in ../data/FWscan
   example: ../data/FWscan/mc2_120719_FW03.root

@@ -72,9 +72,14 @@ private:
         // Bundles
         //
         void ReadBundle(TString InFile);        // Readin bundle configuration from map
+        void GetMeans();                        // Scans file to get mean&sigma of every channel
         static const Int_t fNboard  = 161;      // Number of boards
         static const Int_t fNchann  = 20;       // Number of Channels/board
-        Int_t fBoardChToBundle[fNboard][fNchann];
+        Int_t fBoardChToBundle  [fNboard][fNchann];     // Bundle number associated to board/channel
+        Double_t fBoardChToMean [fNboard][fNchann];     // Peak mean  associated to board/channel
+        Double_t fBoardChToSigma[fNboard][fNchann];     // Peak sigma associated to board/channel
+        Double_t fBoardChToNum  [fNboard][fNchann];     // Nr. of events associated to board/channel
+        Double_t fRefMean;                              // Mean of diodes 0 and 1 (on table before FW)
         static const Int_t fNbundle  = 16;      // Number of bundles
         Int_t fBundleToPIN1[fNbundle] = {4, 4, 6, 6, 8, 8, 10, 10, 12, 12, 14, 14, 16, 16, 18, 18};
         Int_t fBundleToPIN2[fNbundle] = {5, 5, 7, 7, 9, 9, 11, 11, 13, 13, 15, 15, 17, 17, 19, 19};
@@ -100,6 +105,10 @@ public:
         TString GetDescr (Int_t nD){ return fDescr [nD]; };     // Channel description
         Int_t GetDiode(Int_t nBoard, Int_t nChann);     // Return diode number from board and channel (-1 = fail)
         //
+        // Laser correction
+
+        void LaserCorrection(TH1D *hRatio, TH1D *hPeakBs, TH1D *hCorr); // Correct for laser fluctuations
+        //
         // Histograms for PIN
         //
         TCanvas *fC;            // Global histograms
@@ -113,7 +122,10 @@ public:
         TH1D *fh_PkRatio[fNsphere]; // peak ratio of diodes in same sphere
         TH1D *fh_PkInt[fNdiode];// diode peak interpolation variable distribution
         TH1D *fh_PkCum[fNdiode];// Cumulative of the above
+        TH1D *fh_PkRti[fNdiode];// Ratio of Peak value and mean of FW00/FW01
+        TH1D *fh_PkCor[fNdiode];// Laser corrected peak distribution
         //
+        void BookPINplots();          // Book PIN/diode histograms
         void FillPINhist(Int_t Opt);  // Fill histograms (Opt = 0 binary files, 1 for ART)
         void PrintPINhist();          // Display histograms
         //
@@ -126,11 +138,16 @@ public:
         TH1D *fhb_Min [fNbundle];       // Smallest value in bundle
         TH1D *fhb_Max [fNbundle];       // Highest value in bundle
         // Baseline subtracted
-        TH1D *fhb_Meanb[fNbundle];       // Mean of highest bin in bundle
+        TH1D *fhb_Meanb[fNbundle];       // Mean of all values in bundle
+        TH1D *fh_MbRti [fNbundle];       // Ratio of Peak value mean and mean of FW00/FW01
+        TH1D *fhb_Meanbc [fNbundle];        // Laser corrected peak mean distribution
         TH1D *fhb_Minb [fNbundle];       // Smallest value in bundle
         TH1D *fhb_Maxb [fNbundle];       // Highest value in bundle
         TH1D *fhb_Fibreb[fNbundle];      // All fiber values
+        TH1D *fhb_Fibrebc[fNbundle];      // All fiber values corrected
+        TH1D *fh_FbRti [fNbundle];        // Ratio of all fiber values and mean of FW00/FW01
         //
+        void BookBundlePlots();        // Book bundle plots
         void FillBundHist(Int_t Opt);  // Fill histograms (Opt = 0 binary files, 1 for ART)
         void PrintBundHist();          // Display histograms
 };

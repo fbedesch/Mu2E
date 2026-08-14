@@ -112,8 +112,8 @@ void Mu2Edata::DeleteArrays()
 //
 Mu2Edata::~Mu2Edata()
 {
-    /*
     if(fIn)     fIn->Close();
+    /*
     if(fInput)  fInput->Close();
     if(fBoardID) delete [] fBoardID;
     if(fLinkID)  delete [] fLinkID;
