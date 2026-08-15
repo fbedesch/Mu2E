@@ -7,11 +7,14 @@
 #include <iostream>
 #include "classes/Mu2Edata.h"
 
-void SimplePlot(TString fName)
+void SimplePlot(TString fName, Int_t  Opt)
 {
     //
     // Access data and configure
-    Mu2Edata data(fName);
+    //
+    // Opt = 0 Binary (default)
+    // Opt = 1 ART
+    Mu2Edata data(fName, Opt);
     //
     // Now fill some plots
     //

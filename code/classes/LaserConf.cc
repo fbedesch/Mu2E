@@ -3,6 +3,8 @@
 #include <TAxis.h>
 #include <TF1.h>
 #include <TFitResult.h>
+#include <TObjArray.h>
+#include <TObjString.h>
 
 LaserConf::LaserConf()
 {
@@ -12,11 +14,15 @@ LaserConf::LaserConf()
     InitConf();
 }
 //
-LaserConf::LaserConf(TString InFile)
+LaserConf::LaserConf(TString InFile, Int_t Opt)
 {
     //
-    // Input filte
+    // Input file
     fName = InFile;
+    //
+    // Opt = 0 Binary (default)
+    // Opt = 1 ART
+    fOpt = Opt;
     //
     // Setup descriptions
     InitConf();
@@ -41,6 +47,11 @@ void LaserConf::InitConf()
         fDescr[i] = Form("Disk %d, Phi %d, Board %d, Channel %d, Sphere %s, Pin %s",
                          fDisk[i], fPhi[i],fBoard[i], fChann[i], fSphere[i].Data(), fTopBot[i].Data());
     }
+    //
+    // Printout configuration
+    //
+    std::cout<<"Current diode configuration:"<<std::endl;
+    for(Int_t i=0; i<fNdiode; i++)std::cout<<fDescr[i]<<std::endl;
 }
 //
 // Book PIN and diode plots
@@ -273,8 +284,7 @@ void::LaserConf::GetMeans()
     //
     // Open input file
     // Opt = 0 for binary (default) or 1 for ART
-    Int_t Opt = 1;  // Assume ART data
-    Mu2Edata data(fName, Opt);
+    Mu2Edata data(fName, fOpt);
     //
     // Initialize arrays
     for(Int_t ib=0; ib<fNboard; ib++){
@@ -343,6 +353,51 @@ void::LaserConf::GetMeans()
     fRefMean = 0.5*(fBoardChToMean[B0][C0]+fBoardChToMean[B1][C1]);
 }
 //
+// Print means in Excel .csv files with same name.
+void LaserConf::PrintMeans()
+{
+    //
+    // Make output name from input name.
+    //
+    TObjArray* tokens0 = fName.Tokenize(".");
+    TString name0 = ((TObjString*)tokens0->At(0))->String();
+    delete tokens0;
+    TObjArray* tokens = name0.Tokenize("/");
+    Int_t last = tokens->GetEntries()-1;
+    TString name = ((TObjString*)tokens->At(last))->String();
+    delete tokens;
+    TString ExName = "./data/"+name+".csv";
+    std::cout<<"Found "<<name<<" writing to "<<ExName<<std::endl;
+    //
+    // Open file for output
+    //
+    std::ofstream OutFile;
+    OutFile.open (ExName.Data(), std::ofstream::out);
+    //
+    // Header line
+    TString Header = "Board,Channel,Mean,Sigma,Count,Bundle,Diode"; // Negative bundles are diode numbers
+    OutFile<<Header<<std::endl;
+    for(Int_t ib=0; ib<fNboard; ib++){             // Board loop
+        for(Int_t ic=0; ic<fNchann; ic++){          // Channel loop
+            if(fBoardChToBundle[ib][ic] >= 0){    // if channel exists in bundle
+                TString line = Form("%d,%d,%.2f,%.2f,%.0f,%d",
+                                    ib,ic,fBoardChToMean[ib][ic],
+                                    fBoardChToSigma[ib][ic],fBoardChToNum[ib][ic],fBoardChToBundle[ib][ic]);
+                OutFile<<line<<std::endl;
+            }else {
+                if(GetDiode(ib, ic) >=0){
+                    TString lineD = Form("%d,%d,%.2f,%.2f,%.0f,,%d",
+                                    ib,ic,fBoardChToMean[ib][ic],
+                                    fBoardChToSigma[ib][ic],fBoardChToNum[ib][ic],GetDiode(ib,ic));
+                    OutFile<<lineD<<std::endl;
+                }
+            }// End if channel exists
+        }   // End channel loop
+    }   // End board loop
+    //
+    OutFile.close();
+}
+//
 LaserConf::~LaserConf()
 {
 }
@@ -360,7 +415,7 @@ Int_t LaserConf::GetDiode(Int_t nBoard, Int_t nChann)
 //
 // Fill histograms
 //
-void LaserConf::FillPINhist(Int_t Opt)
+void LaserConf::FillPINhist()
 {
     //
     // Book PIN/Diode plots
@@ -368,7 +423,7 @@ void LaserConf::FillPINhist(Int_t Opt)
     //
     // Open input file
     // Opt = 0 for binary (default) or 1 for ART
-    Mu2Edata data(fName, Opt);
+    Mu2Edata data(fName, fOpt);
     //
     // Main event loop
     //
@@ -457,6 +512,10 @@ void LaserConf::FillPINhist(Int_t Opt)
     } // end event loop
     //std::cout<<"End event loop"<<std::endl;
 }
+//
+// Laser correction without re-running over data
+// Currently NOT used
+//
 void LaserConf::LaserCorrection(TH1D *hRatio, TH1D *hPeakBs, TH1D *hCorr){
         //
         // Correct peak histogram for laser fluctuations
@@ -552,7 +611,7 @@ void LaserConf::PrintPINhist()
 // Bundle histogram filling and printing
 //
 // Fill them
-void LaserConf::FillBundHist(Int_t Opt)
+void LaserConf::FillBundHist()
 {
     //
     // Book bundle plots
@@ -560,7 +619,7 @@ void LaserConf::FillBundHist(Int_t Opt)
     //
     // Open input file
     // Opt = 0 for binary (default) or 1 for ART
-    Mu2Edata data(fName, Opt);
+    Mu2Edata data(fName, fOpt);
     //
     // Main event loop
     //

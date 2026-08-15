@@ -565,7 +565,7 @@ void Mu2Edata::MakeFitROOT(TString RootFile)
 //
 void Mu2Edata::InitTreeRead()
 {
-    cout<<"Inside InitTreeRead"<<endl;
+    //cout<<"Inside InitTreeRead"<<endl;
     //
     // Initialize output tree
     //
@@ -581,7 +581,7 @@ void Mu2Edata::InitTreeRead()
     frTree->SetBranchAddress("Norm",   fNorm);
     frTree->SetBranchAddress("timOff", fTimOff);
     frTree->SetBranchAddress("pedOff", fPedOff);
-    cout<<"Done branch setting"<<endl;
+    //cout<<"Done branch setting"<<endl;
 }
 void Mu2Edata::ReadFitROOT(TString RootFile)
 {

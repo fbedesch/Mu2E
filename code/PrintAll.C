@@ -1,16 +1,12 @@
 
 #include "classes/LaserConf.h"
 
-void LaserView(TString fName)
+void PrintAll(TString fName)
 {
     //
     // View basic features of all photodiodes in the laser system
     //
     Int_t Opt = 1;  // Assume ART format
     LaserConf LC(fName, Opt);
-    //
-    LC.FillPINhist();
-    std::cout<<"LaserView: Histograms filled"<<std::endl;
-    LC.PrintPINhist();
-
+    LC.PrintMeans();
 }

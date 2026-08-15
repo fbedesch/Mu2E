@@ -56,9 +56,12 @@ Double_t ExpGau(Double_t *x, Double_t *par)
     return fun;
 }
 
-void WaveFit(TString fName)
+void WaveFit(TString fName, Int_t Opt)
 {
     //
+    //
+    // Opt = 0 Binary (default)
+    // Opt = 1 ART
     //
     const Int_t MinHit = 6; //Number of hits
     //
@@ -136,7 +139,7 @@ void WaveFit(TString fName)
     }
     //
     // Open data  file and configure data access
-    Mu2Edata data(fName);
+    Mu2Edata data(fName, Opt);
     //
     // Setup graphs for Waveforms
     TGraph *g_Wave[MinHit];

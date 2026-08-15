@@ -6,11 +6,14 @@
 #include <iostream>
 #include "classes/Mu2Edata.h"
 
-void WavePlot(TString fName)
+void WavePlot(TString fName, Int_t Opt)
 {
     //
     // Open data  file and configure data access
-    Mu2Edata data(fName);
+    //
+    // Opt = 0 Binary (default)
+    // Opt = 1 ART
+    Mu2Edata data(fName, Opt);
     //
     // Setup graphs for Waveforms
     const Int_t MinHit = 6;
