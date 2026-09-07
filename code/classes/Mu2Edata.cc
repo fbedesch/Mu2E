@@ -12,6 +12,7 @@ Mu2Edata::Mu2Edata()
 Mu2Edata::Mu2Edata(TString InFile, Int_t Opt)
 {
     //
+    fName = InFile; // Store file name
     //
     // Opt = 0 Binary (default)
     // Opt = 1 ART

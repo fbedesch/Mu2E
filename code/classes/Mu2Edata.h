@@ -90,6 +90,7 @@ public:
         // Constructors
         Mu2Edata();
         Mu2Edata(TString Input_File, Int_t Opt=0);
+        void Setup(TString Input_File, Int_t Opt=0);
         // Destructor
         ~Mu2Edata();
         //

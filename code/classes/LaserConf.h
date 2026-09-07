@@ -30,7 +30,9 @@ class LaserConf
 private:
         //
         // Inputs
-        TString fName;
+        TString fName;  // Input data file
+        Int_t fOpt;     // Input data file type (0= binary, 1= ART)
+        Mu2Edata *fdata;
         //
         // Configuration data
         // Identification of pin diodes
@@ -78,7 +80,10 @@ private:
         Int_t fBoardChToBundle  [fNboard][fNchann];     // Bundle number associated to board/channel
         Double_t fBoardChToMean [fNboard][fNchann];     // Peak mean  associated to board/channel
         Double_t fBoardChToSigma[fNboard][fNchann];     // Peak sigma associated to board/channel
+        Double_t fBoardChToMeanC [fNboard][fNchann];     // Peak mean  associated to board/channel (corrected)
+        Double_t fBoardChToSigmaC[fNboard][fNchann];     // Peak sigma associated to board/channel (corrected)
         Double_t fBoardChToNum  [fNboard][fNchann];     // Nr. of events associated to board/channel
+        Double_t fBoardChToNumC [fNboard][fNchann];     // Nr. of events associated to board/channel with correction
         Double_t fRefMean;                              // Mean of diodes 0 and 1 (on table before FW)
         static const Int_t fNbundle  = 16;      // Number of bundles
         Int_t fBundleToPIN1[fNbundle] = {4, 4, 6, 6, 8, 8, 10, 10, 12, 12, 14, 14, 16, 16, 18, 18};
@@ -88,7 +93,7 @@ public:
         //
         // Constructors
         LaserConf();    // Just load configuration
-        LaserConf(TString Input_File);  // Prepare also histograms
+        LaserConf(Mu2Edata *data);  // Prepare also histograms
         void InitConf();
         // Destructor
         ~LaserConf();
@@ -104,9 +109,13 @@ public:
         TString GetTopBot(Int_t nD){ return fTopBot[nD]; };     // PIN selection
         TString GetDescr (Int_t nD){ return fDescr [nD]; };     // Channel description
         Int_t GetDiode(Int_t nBoard, Int_t nChann);     // Return diode number from board and channel (-1 = fail)
+        Double_t GetPINref(Int_t Nhits, Double_t &meanD);  // Return #FW00-01 PIN and their average
+        //
+        // Print mean and sigma of every channel
+        void PrintMeans();
         //
         // Laser correction
-
+        // Currently NOT used
         void LaserCorrection(TH1D *hRatio, TH1D *hPeakBs, TH1D *hCorr); // Correct for laser fluctuations
         //
         // Histograms for PIN
@@ -126,8 +135,8 @@ public:
         TH1D *fh_PkCor[fNdiode];// Laser corrected peak distribution
         //
         void BookPINplots();          // Book PIN/diode histograms
-        void FillPINhist(Int_t Opt);  // Fill histograms (Opt = 0 binary files, 1 for ART)
-        void PrintPINhist();          // Display histograms
+        void FillPINhist();           // Fill histograms (Opt = 0 binary files, 1 for ART)
+        void PrintPINhist(Bool_t Prt = kFALSE);          // Display histograms
         //
         // Histograms for bundles
         //
@@ -148,7 +157,7 @@ public:
         TH1D *fh_FbRti [fNbundle];        // Ratio of all fiber values and mean of FW00/FW01
         //
         void BookBundlePlots();        // Book bundle plots
-        void FillBundHist(Int_t Opt);  // Fill histograms (Opt = 0 binary files, 1 for ART)
-        void PrintBundHist();          // Display histograms
+        void FillBundHist();           // Fill histograms (Opt = 0 binary files, 1 for ART)
+        void PrintBundHist(Bool_t Prt = kFALSE);          // Display histograms
 };
 #endif
