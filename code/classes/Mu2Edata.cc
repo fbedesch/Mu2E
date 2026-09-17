@@ -491,7 +491,8 @@ void Mu2Edata::MakeFitROOT(TString RootFile)
     for(Int_t i=0; i<MinHit; i++){
         sFname[i] = Form("sFit%d",i);
         // Fit version with splines
-        sFit[i] = new TF1(sFname[i],this,&Mu2Edata::FitFun,0.,40,3,"Mu2Edata","FitFun");
+        //sFit[i] = new TF1(sFname[i],this,&Mu2Edata::FitFun,0.,40,3,"Mu2Edata","FitFun");
+        sFit[i] = new TF1(sFname[i],this,&Mu2Edata::FitFun,0.,40.,3); // modified for ROOT 6.40.04
         sFit[i]->SetNpx(1000);
         sFit[i]->SetParameter(0,2800.);
         sFit[i]->SetParameter(1,0.);
