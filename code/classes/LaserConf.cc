@@ -30,6 +30,9 @@ LaserConf::LaserConf(Mu2Edata *data)
     TString BundleMap = "./data/BundleMap.csv";
     ReadBundle(BundleMap);
     //
+    // Book general plots
+    BookGenPlots();
+    //
     // Get mean&sigma of each fiber/diode
     GetMeans();
 }
@@ -53,6 +56,19 @@ void LaserConf::InitConf()
     for(Int_t i=0; i<fNdiode; i++)std::cout<<fDescr[i]<<std::endl;
 }
 //
+// General control histigrams
+//
+void LaserConf::BookGenPlots()
+{
+    //
+    fh_nHit = new TH1D("fh_nHit","Number of hits",100,0.,4000.);
+    fh_nSamp = new TH1D("fh_nSamp","Number of samples",850,0.,85000.);
+    //
+    fh_nHitLevt = new TH1D("fh_nHitLevt","Number of hits vs. laser event number",10000,0.5,10000.5);
+    fh_PevtLevt = new TH1D("fh_PevtLevt","Processed event number vs Laser event number",10000,0.5,10000.5);
+    fh_nEvtPevt = new TH1D("fh_nEvtPevt","Stored event number vs Processed event number",10000,0.5,100000.5);
+}
+//
 // Book PIN and diode plots
 //
 void LaserConf::BookPINplots()
@@ -62,9 +78,6 @@ void LaserConf::BookPINplots()
     //      PIN plots
     //
     // Setup optical board histograms for PIN diodes
-    //
-    fh_nHit = new TH1D("fh_nHit","Number of hits",100,0.,4000.);
-    fh_nSamp = new TH1D("fh_nSamp","Number of samples",850,0.,85000.);
     //
     fh_base[0] = new TH1D("fh_base_0","Baseline FW00", 100, 1950., 2250.);
     fh_bRMS[0] = new TH1D("fh_bRMS_0","Baseline RMS FW00", 100, -5., 5.);
@@ -308,15 +321,24 @@ void::LaserConf::GetMeans()
     TTree *tree = fdata->GetTree();
     Long64_t nentries = (Int_t) tree->GetEntries();
     cout<<"Nentries= "<<nentries<<endl;
+    Int_t LaserEvt = 0;                 // Laser event number
     for (Long64_t i = 0; i <nentries; ++i) {
         tree->GetEntry(i);    // Load new entry
         Int_t Nhits = fdata->GetNhits();
         Int_t Nsamp = fdata->GetNsamples();
-        if(i%1000 == 0)std::cout<<"LaserConf::GetMeans: nev="<<i<<", Nhit= "<<Nhits
+        fh_nHit ->Fill((Double_t)Nhits);        // Fill general histograms
+        fh_nSamp->Fill((Double_t)Nsamp);
+        fh_nHitLevt->Fill((Double_t)LaserEvt,(Double_t)Nhits);
+        fh_PevtLevt->Fill((Double_t)LaserEvt,(Double_t)i);
+        fh_nEvtPevt->Fill((Double_t)i,(Double_t)fdata->GetNevt());
+        //
+        if(i%5000 == 0)std::cout<<"LaserConf::GetMeans: nev="<<i<<", Nhit= "<<Nhits
             <<", Nsamp= "<<Nsamp<<std::endl;
         //
-        Int_t MinHits = 1000;   // Minimum number of hits to select laser events
-        if(Nhits>MinHits){      // Laser event
+        Int_t MinHits = 2350;   // Minimum number of hits to select laser events
+        Int_t MaxHits = 2600;   // Maximum number of hits to select laser events
+        if(Nhits>MinHits && Nhits<MaxHits){      // Laser event
+            LaserEvt++;         // Laser event number
             Double_t meanD = 0.0;                        // Initialize mean of box PINs
             Int_t NdR = GetPINref(Nhits, meanD);
             for(Int_t k=0; k<Nhits; k++){      // Scan hits
@@ -422,6 +444,24 @@ void LaserConf::PrintMeans()
     OutFile.close();
 }
 //
+// Print general histograms
+void LaserConf::PrintGenPlots()
+{
+    //
+    fC = new TCanvas("fC","Global quantities",0,0,800,800);
+    fC->Divide(3,2);
+    fC->cd(1);
+    fh_nHit->Draw();
+    fC->cd(2);
+    fh_nSamp->Draw();
+    fC->cd(3);
+    fh_PevtLevt->Draw("HIST");
+    fC->cd(5);
+    fh_nHitLevt->Draw("HIST");
+    fC->cd(6);
+    fh_nEvtPevt->Draw("HIST");
+}
+//
 LaserConf::~LaserConf()
 {
 }
@@ -485,8 +525,6 @@ void LaserConf::FillPINhist()
         Int_t Nsamp = fdata->GetNsamples();
         if(i%1000 == 0)std::cout<<"LasrConf::FillPINhist: nev="<<i<<", Nhit= "<<Nhits
             <<", Nsamp= "<<Nsamp<<std::endl;
-        fh_nHit ->Fill((Double_t)Nhits);        // Fill histograms
-        fh_nSamp->Fill((Double_t)Nsamp);
         TVectorD Peak(fNdiode); Peak.Zero();    // Store peak values
         TVectorD PeakB(fNdiode); PeakB.Zero();  // Store peak values (subtracted)
         //
@@ -587,13 +625,6 @@ void LaserConf::PrintPINhist(Bool_t Prt)
 {
     //
     // Display two canvases per diode
-    //
-    fC = new TCanvas("fC","Global quantities",0,0,800,800);
-    fC->Divide(2,1);
-    fC->cd(1);
-    fh_nHit->Draw();
-    fC->cd(2);
-    fh_nSamp->Draw();
     //
     // Canvases for optical table PINs
     fCnv[0] = new TCanvas("fCnv_0","Optical table before the FW",10,10,800,800);

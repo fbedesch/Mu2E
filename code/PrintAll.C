@@ -12,4 +12,5 @@ void PrintAll(TString fName)
     // Start Laser processing
     LaserConf LC(data);
     LC.PrintMeans();
+    LC.PrintGenPlots();
 }

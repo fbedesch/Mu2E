@@ -118,12 +118,21 @@ public:
         // Currently NOT used
         void LaserCorrection(TH1D *hRatio, TH1D *hPeakBs, TH1D *hCorr); // Correct for laser fluctuations
         //
-        // Histograms for PIN
+        // General histograms
         //
         TCanvas *fC;            // Global histograms
-        TCanvas *fCnv[fNdiode]; // two canvanses for each sphere
         TH1D *fh_nHit;          // # Hits
         TH1D *fh_nSamp;         // # Samples
+        TH1D *fh_nHitLevt;      // Number of hits vs. laser event number
+        TH1D *fh_PevtLevt;      // Processed event number vs Laser event number
+        TH1D *fh_nEvtPevt;      // Stored event number vs Processed event number
+        //
+        void BookGenPlots();          // Book general histograms
+        void PrintGenPlots();
+        //
+        // Histograms for PIN
+        //
+        TCanvas *fCnv[fNdiode]; // two canvanses for each sphere
         TH1D *fh_base[fNdiode]; // diode baseline distribution
         TH1D *fh_bRMS[fNdiode]; // diode baseline RMS distribution
         TH1D *fh_peak[fNdiode]; // diode peak value distribution
@@ -133,7 +142,6 @@ public:
         TH1D *fh_PkCum[fNdiode];// Cumulative of the above
         TH1D *fh_PkRti[fNdiode];// Ratio of Peak value and mean of FW00/FW01
         TH1D *fh_PkCor[fNdiode];// Laser corrected peak distribution
-        //
         void BookPINplots();          // Book PIN/diode histograms
         void FillPINhist();           // Fill histograms (Opt = 0 binary files, 1 for ART)
         void PrintPINhist(Bool_t Prt = kFALSE);          // Display histograms
