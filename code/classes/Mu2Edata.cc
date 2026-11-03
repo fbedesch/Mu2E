@@ -53,7 +53,7 @@ Mu2Edata::Mu2Edata(TString InFile, Int_t Opt)
         //
         // Default array sizes
         fMaxHit = 3000;
-        fMaxSamp = 200000;
+        fMaxSamp = 300000;
         fMaxWave = 100; // Max hit wave length
         InitArrays();
         InitTreeIn();
