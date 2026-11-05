@@ -71,6 +71,10 @@ private:
         //
         TString fDescr[fNdiode];
         //
+        // Laser selection
+        Int_t fMinHits;         // Minimum number of hits for laser event selection
+        Int_t fnSel;            // Number of hits in time window
+        //
         // Bundles
         //
         void ReadBundle(TString InFile);        // Readin bundle configuration from map
@@ -122,10 +126,13 @@ public:
         //
         TCanvas *fC;            // Global histograms
         TH1D *fh_nHit;          // # Hits
+        TH1D *fh_nSel;          // # selected laser hits
         TH1D *fh_nSamp;         // # Samples
         TH1D *fh_nHitLevt;      // Number of hits vs. laser event number
         TH1D *fh_PevtLevt;      // Processed event number vs Laser event number
         TH1D *fh_nEvtPevt;      // Stored event number vs Processed event number
+        //
+        void SetMinHits(Int_t nh){ fMinHits = nh; return;};
         //
         void BookGenPlots();          // Book general histograms
         void PrintGenPlots();
@@ -156,6 +163,7 @@ public:
         TH1D *fhb_Max [fNbundle];       // Highest value in bundle
         // Baseline subtracted
         TH1D *fhb_Meanb[fNbundle];       // Mean of all values in bundle
+        TH1D *fhb_Fibrem[fNbundle];     // Individual means
         TH1D *fh_MbRti [fNbundle];       // Ratio of Peak value mean and mean of FW00/FW01
         TH1D *fhb_Meanbc [fNbundle];        // Laser corrected peak mean distribution
         TH1D *fhb_Minb [fNbundle];       // Smallest value in bundle

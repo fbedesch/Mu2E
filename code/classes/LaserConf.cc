@@ -26,6 +26,9 @@ LaserConf::LaserConf(Mu2Edata *data)
     // Setup descriptions
     InitConf();
     //
+    // Laser selection
+    fMinHits = 2650;    // Default based on run 125569
+    //
     // Initialize board/chann to bundles
     TString BundleMap = "./data/BundleMap.csv";
     ReadBundle(BundleMap);
@@ -62,6 +65,7 @@ void LaserConf::BookGenPlots()
 {
     //
     fh_nHit = new TH1D("fh_nHit","Number of hits",100,0.,4000.);
+    fh_nSel = new TH1D("fh_nSel","Number of selected laser hits",100,0.,4000.);
     fh_nSamp = new TH1D("fh_nSamp","Number of samples",850,0.,85000.);
     //
     fh_nHitLevt = new TH1D("fh_nHitLevt","Number of hits vs. laser event number",10000,0.5,10000.5);
@@ -177,6 +181,7 @@ void LaserConf::BookBundlePlots()
         TString b_MaxIDb  = Form("fhb_Max_b_%d",i);
         TString b_FibreIDb  = Form("fhb_Fibreb_%d",i);
         TString b_FibreIDbc  = Form("fhb_Fibrebc_%d",i);
+        TString b_FibreIDbm  = Form("fhb_Fibrebm_%d",i);    // single fiber means
         //
         TString b_MeanIDc    = Form("fhb_Meanbc_%d",i);    // Laser corrected
         TString b_MeanRtiID  = Form("fh_MbRti_%d",i);
@@ -194,6 +199,7 @@ void LaserConf::BookBundlePlots()
         TString b_MeanTitc    = Form("Laser corrected mean of bundle %d",i);    // Laser corrected
         TString b_MeanRtiTit  = Form("Ratio mean peak/laser in bundle %d",i);
         TString b_FibreTitbc = Form("All fired fibers (corrected) in bundle %d",i);
+        TString b_FibreTitbm = Form("All fiber  means in bundle %d",i);
         // histogram allocation
         fhb_num [i] = new TH1D(b_numID,b_numTit,  200,   0., 200.);
         fhb_Mean[i] = new TH1D(b_MeanID,b_MeanTit,210,2000.,4100.); // Uncorrected
@@ -204,6 +210,7 @@ void LaserConf::BookBundlePlots()
         fhb_Minb [i] = new TH1D(b_MinIDb,b_MinTitb,  210,0.,2100.);
         fhb_Maxb [i] = new TH1D(b_MaxIDb,b_MaxTitb,  210,0.,2100.);
         fhb_Fibreb[i] = new TH1D(b_FibreIDb,b_FibreTitb,210,0.,2100.);
+        fhb_Fibrem[i] = new TH1D(b_FibreIDbm,b_FibreTitbm,420,0.,2100.);
         //
         fh_MbRti[i] = new TH1D(b_MeanRtiID,b_MeanRtiTit,1000,0.,2.);    // Laser corrected
         fhb_Fibrebc[i] = new TH1D(b_FibreIDbc,b_FibreTitbc,210,0.,2100.);
@@ -335,33 +342,38 @@ void::LaserConf::GetMeans()
         if(i%5000 == 0)std::cout<<"LaserConf::GetMeans: nev="<<i<<", Nhit= "<<Nhits
             <<", Nsamp= "<<Nsamp<<std::endl;
         //
-        Int_t MinHits = 2350;   // Minimum number of hits to select laser events
-        Int_t MaxHits = 2600;   // Maximum number of hits to select laser events
-        if(Nhits>MinHits && Nhits<MaxHits){      // Laser event
+        // **************************************
+        /// MUST ADJUST DEPENDING ON NUMBER OF WORKING BOARDS!!!!
+        // **************************************
+        //
+        if(Nhits>fMinHits){      // Laser event
             LaserEvt++;         // Laser event number
             Double_t meanD = 0.0;                        // Initialize mean of box PINs
             Int_t NdR = GetPINref(Nhits, meanD);
-            for(Int_t k=0; k<Nhits; k++){      // Scan hits
-                Int_t nBoard  = fdata->GetBoardID(k);    // Get board
-                Int_t nChann  = fdata->GetChanID(k);     // Get Channel
-                //
-                // Get baseline for subtraction
-                Double_t mBase; Double_t sBase;
-                fdata->BaselineCalc(k, mBase, sBase);
-                Double_t pk = (Double_t) fdata->GetPeakval(k)-mBase;  // Get peak value
-                //
-                fBoardChToNum   [nBoard][nChann]++;          // Increment nr events detected
-                fBoardChToMean  [nBoard][nChann] += pk;      // Increment peak sum
-                fBoardChToSigma [nBoard][nChann] += pk*pk;   // Increment peak^2 sum
-                //
-                if(NdR > 0){
-                    Double_t pkR = pk/meanD;
-                    fBoardChToNumC  [nBoard][nChann]++;          // Increment nr events detected w/ correction
-                    fBoardChToMeanC [nBoard][nChann] += pkR;     // Increment peak corrected sum
-                    fBoardChToSigmaC[nBoard][nChann] += pkR*pkR; // Increment peak^2 corrected sum
-                }
-                //
-            } // End loop on hits
+            fh_nSel ->Fill((Double_t)fnSel);
+            if(fnSel > fMinHits){
+                for(Int_t k=0; k<Nhits; k++){      // Scan hits
+                    Int_t nBoard  = fdata->GetBoardID(k);    // Get board
+                    Int_t nChann  = fdata->GetChanID(k);     // Get Channel
+                    //
+                    // Get baseline for subtraction
+                    Double_t mBase; Double_t sBase;
+                    fdata->BaselineCalc(k, mBase, sBase);
+                    Double_t pk = (Double_t) fdata->GetPeakval(k)-mBase;  // Get peak value
+                    //
+                    fBoardChToNum   [nBoard][nChann]++;          // Increment nr events detected
+                    fBoardChToMean  [nBoard][nChann] += pk;      // Increment peak sum
+                    fBoardChToSigma [nBoard][nChann] += pk*pk;   // Increment peak^2 sum
+                    //
+                    if(NdR > 0){
+                        Double_t pkR = pk/meanD;
+                        fBoardChToNumC  [nBoard][nChann]++;          // Increment nr events detected w/ correction
+                        fBoardChToMeanC [nBoard][nChann] += pkR;     // Increment peak corrected sum
+                        fBoardChToSigmaC[nBoard][nChann] += pkR*pkR; // Increment peak^2 corrected sum
+                    }
+                    //
+                } // End loop on hits
+            }
         }
     } // End loop on events
     //
@@ -384,6 +396,7 @@ void::LaserConf::GetMeans()
                 fBoardChToMean[ib][ic] /= fBoardChToNum[ib][ic];
                 Double_t x2 = fBoardChToSigma[ib][ic]/fBoardChToNum[ib][ic];
                 fBoardChToSigma [ib][ic] = TMath::Sqrt(x2-TMath::Power(fBoardChToMean[ib][ic],2));
+                cout<<"GetMeans::Board: "<<ib<<", ch: "<<ic<<", count = "<<fBoardChToNum[ib][ic]<<endl;
             }
             // with laser correction
             if(fBoardChToNumC[ib][ic] > 0.0){
@@ -450,8 +463,10 @@ void LaserConf::PrintGenPlots()
     //
     fC = new TCanvas("fC","Global quantities",0,0,800,800);
     fC->Divide(3,2);
-    fC->cd(1);
+    fC->cd(1);  gPad->SetLogy(1);
     fh_nHit->Draw();
+    fh_nSel->SetLineColor(kRed);
+    fh_nSel->Draw("Same");
     fC->cd(2);
     fh_nSamp->Draw();
     fC->cd(3);
@@ -482,12 +497,17 @@ Int_t LaserConf::GetDiode(Int_t nBoard, Int_t nChann)
 Double_t LaserConf::GetPINref(Int_t Nhits, Double_t &meanD)
 {
     //
-    // Get mean of reference diodes first
+    // Get mean of reference diodes first and count selected events in time
+    fnSel = 0;
     Double_t NrD = 0;
     meanD = 0.0;
     for(Int_t k=0; k<Nhits; k++){
         Int_t nBoard  = fdata->GetBoardID(k);    // Get board
         Int_t nChann  = fdata->GetChanID(k);     // Get Channel
+        //
+        Int_t tMin = 20; Int_t tMax = 19430;    // time range
+        Int_t tTot    = fdata->GetTimetot(k);   // Get total time
+        if(tTot >=tMin && tTot<=tMax)fnSel++;
         //
         // Process PINs
         //
@@ -498,7 +518,7 @@ Double_t LaserConf::GetPINref(Int_t Nhits, Double_t &meanD)
             fdata->BaselineCalc(k, mBase, sBase);
             meanD += (Double_t) fdata->GetPeakval(k)-mBase;
         }
-        if(NrD >= 2) break;
+        //if(NrD >= 2) break;
     }
     if(NrD > 0) meanD = meanD/NrD;
     //
@@ -523,51 +543,56 @@ void LaserConf::FillPINhist()
         tree->GetEntry(i);    // Load new entry
         Int_t Nhits = fdata->GetNhits();
         Int_t Nsamp = fdata->GetNsamples();
-        if(i%1000 == 0)std::cout<<"LasrConf::FillPINhist: nev="<<i<<", Nhit= "<<Nhits
+        if(i%1000 == 0)std::cout<<"LaserConf::FillPINhist: nev="<<i<<", Nhit= "<<Nhits
             <<", Nsamp= "<<Nsamp<<std::endl;
-        TVectorD Peak(fNdiode); Peak.Zero();    // Store peak values
-        TVectorD PeakB(fNdiode); PeakB.Zero();  // Store peak values (subtracted)
         //
-        // Get laser reference correction
         Double_t meanD = 0.;    // Mean of diodes before FW
         Double_t NrD   = 0.;    // Nr. of found diodes before the FW
-        NrD = GetPINref(Nhits, meanD);
-        //
-        // Main loop on hits
-        for(Int_t k=0; k<Nhits; k++){
-            Int_t nBoard = fdata->GetBoardID(k);            // Get board
-            Int_t nChann = fdata->GetChanID(k);             // Get Channel
-            Int_t iDiode = GetDiode(nBoard, nChann);        // Get pin diode
-            Int_t Sphere = -1;
-            if(iDiode >= 0){
-                // Found diode
-                //std::cout<<"Hit= "<<k<<", Board= "<<nBoard<<", Channel= "<<nChann
-                //<<", Diode = "<<iDiode<<std::endl;
-                Sphere = iDiode/2;   // Get Sphere
-                Double_t Pk0 = (Double_t) fdata->GetPeakval(k);
-                Peak(iDiode)  = Pk0;    // Store peak value
-                Int_t tMax   = fdata->GetPeakpos(k);                // Peak position
-                fh_peak[iDiode]->Fill(Pk0);
+        TVectorD Peak(fNdiode); Peak.Zero();    // Store peak values
+        TVectorD PeakB(fNdiode); PeakB.Zero();  // Store peak values (subtracted)
+        // Select laser events
+        if(Nhits > fMinHits){
+            // Get laser reference correction
+            NrD = GetPINref(Nhits, meanD);
+            if(fnSel > fMinHits){       // Laser events in time window
                 //
-                Double_t BaseV1; Double_t BaseRMS;
-                fdata->BaselineCalc(k, BaseV1, BaseRMS);
-                PeakB(iDiode) = Pk0-BaseV1;
-                fh_base[iDiode]->Fill(BaseV1);
-                fh_bRMS[iDiode]->Fill(BaseRMS);
-                fh_peak_bs[iDiode]->Fill(Pk0-BaseV1);
-                //
-                // Get waveform data
-                Int_t First  = fdata->GetFirstsample(k);     // Wave start
-                Int_t Length = fdata->GetNofsamples(k);      // Wave length
-                //
-                // Peak interpolation
-                Double_t PkMin = (Double_t) fdata->GetADC(First + tMax-1);
-                Double_t PkMax = (Double_t) fdata->GetADC(First + tMax+1);
-                Double_t PkInt = 2.*TMath::ATan((Pk0-PkMin)/(Pk0-PkMax))/TMath::Pi();
-                fh_PkInt[iDiode]->Fill(PkInt);
-                //
-            }  // end if(iDiode) >= 0)
-        }   // end hit loop
+                // Main loop on hits
+                for(Int_t k=0; k<Nhits; k++){
+                    Int_t nBoard = fdata->GetBoardID(k);            // Get board
+                    Int_t nChann = fdata->GetChanID(k);             // Get Channel
+                    Int_t iDiode = GetDiode(nBoard, nChann);        // Get pin diode
+                    Int_t Sphere = -1;
+                    if(iDiode >= 0){
+                        // Found diode
+                        //std::cout<<"Hit= "<<k<<", Board= "<<nBoard<<", Channel= "<<nChann
+                        //<<", Diode = "<<iDiode<<std::endl;
+                        Sphere = iDiode/2;   // Get Sphere
+                        Double_t Pk0 = (Double_t) fdata->GetPeakval(k);
+                        Peak(iDiode)  = Pk0;    // Store peak value
+                        Int_t tMax   = fdata->GetPeakpos(k);                // Peak position
+                        fh_peak[iDiode]->Fill(Pk0);
+                        //
+                        Double_t BaseV1; Double_t BaseRMS;
+                        fdata->BaselineCalc(k, BaseV1, BaseRMS);
+                        PeakB(iDiode) = Pk0-BaseV1;
+                        fh_base[iDiode]->Fill(BaseV1);
+                        fh_bRMS[iDiode]->Fill(BaseRMS);
+                        fh_peak_bs[iDiode]->Fill(Pk0-BaseV1);
+                        //
+                        // Get waveform data
+                        Int_t First  = fdata->GetFirstsample(k);     // Wave start
+                        Int_t Length = fdata->GetNofsamples(k);      // Wave length
+                        //
+                        // Peak interpolation
+                        Double_t PkMin = (Double_t) fdata->GetADC(First + tMax-1);
+                        Double_t PkMax = (Double_t) fdata->GetADC(First + tMax+1);
+                        Double_t PkInt = 2.*TMath::ATan((Pk0-PkMin)/(Pk0-PkMax))/TMath::Pi();
+                        fh_PkInt[iDiode]->Fill(PkInt);
+                        //
+                    }  // end if(iDiode) >= 0)
+                }   // end hit loop
+            } // entime window selection
+        }  // end laser event selection
         //std::cout<<"End of hit loop"<<std::endl;
         //
         //
@@ -707,7 +732,6 @@ void LaserConf::FillBundHist()
         if(i%1000 == 0)std::cout<<"LaserConf::FillBundHist: nev="<<i<<", Nhit= "<<Nhits
             <<", Nsamp= "<<Nsamp<<std::endl;
         //
-        Int_t MinHits = 1000;   // Minimum number of hits to select laser events
         Double_t bNum[fNbundle];     // Number of fibers hit
         // Uncorrected
         Double_t bMean[fNbundle];    // Mean of peak values
@@ -732,43 +756,45 @@ void LaserConf::FillBundHist()
         Double_t meanD = 0.;    // Mean of diodes before FW
         Double_t NrD   = 0.;    // Nr. of found diodes before the FW
         //
-        if(Nhits>MinHits){          // Select laser events
+        if(Nhits>fMinHits){          // Select laser events
             //
             // Get mean of reference diodes first
             NrD = GetPINref(Nhits, meanD);
+            if(fnSel > fMinHits){           // Events in time window
             //
             // then deal with all bundles
-            for(Int_t k=0; k<Nhits; k++){
-                Int_t nBoard  = fdata->GetBoardID(k);    // Get board
-                Int_t nChann  = fdata->GetChanID(k);     // Get Channel
-                Int_t iBundle = fBoardChToBundle[nBoard][nChann];      // Get bundle
-                //
-                // Process bundles
-                //
-                if(iBundle >=0){
+                for(Int_t k=0; k<Nhits; k++){
+                    Int_t nBoard  = fdata->GetBoardID(k);    // Get board
+                    Int_t nChann  = fdata->GetChanID(k);     // Get Channel
+                    Int_t iBundle = fBoardChToBundle[nBoard][nChann];      // Get bundle
                     //
-                    // Get baseline for subtraction
-                    Double_t mBase; Double_t sBase;
-                    fdata->BaselineCalc(k, mBase, sBase);
+                    // Process bundles
                     //
-                    Double_t Pk0 = (Double_t) fdata->GetPeakval(k);
-                    fhb_Fibreb [iBundle]->Fill(Pk0-mBase);
-                    if(meanD> 0.)fhb_Fibrebc[iBundle]->Fill((Pk0-mBase)*fRefMean/meanD);
+                    if(iBundle >=0){
+                        //
+                        // Get baseline for subtraction
+                        Double_t mBase; Double_t sBase;
+                        fdata->BaselineCalc(k, mBase, sBase);
+                        //
+                        Double_t Pk0 = (Double_t) fdata->GetPeakval(k);
+                        fhb_Fibreb [iBundle]->Fill(Pk0-mBase);
+                        if(meanD> 0.)fhb_Fibrebc[iBundle]->Fill((Pk0-mBase)*fRefMean/meanD);
 
-                    bNum[iBundle]++;
-                    bMean   [iBundle] += Pk0;
-                    bMean_b [iBundle] += Pk0-mBase;
-                    if(meanD>0.)bMean_bc[iBundle] += (Pk0-mBase)*fRefMean/meanD;
-                    if(Pk0 < bMin[iBundle]){
-                        bMin  [iBundle] = Pk0;
-                        bMin_b[iBundle] = Pk0-mBase;
+                        bNum[iBundle]++;
+                        bMean   [iBundle] += Pk0;
+                        bMean_b [iBundle] += Pk0-mBase;
+                        if(meanD>0.)bMean_bc[iBundle] += (Pk0-mBase)*fRefMean/meanD;
+                        if(Pk0 < bMin[iBundle]){
+                            bMin  [iBundle] = Pk0;
+                            bMin_b[iBundle] = Pk0-mBase;
+                        }
+                        if(Pk0 > bMax[iBundle]){
+                            bMax  [iBundle] = Pk0;
+                            bMax_b[iBundle] = Pk0-mBase;
+                        }
                     }
-                    if(Pk0 > bMax[iBundle]){
-                        bMax  [iBundle] = Pk0;
-                        bMax_b[iBundle] = Pk0-mBase;
-                    }
-                }
-            } // end loop on hits
+                } // end loop on hits
+            } // end time window selection
             //cout<<"FillBundle: end loop on hits"<<endl;
             //
             for(Int_t ibn=0; ibn<fNbundle; ibn++){
@@ -794,7 +820,24 @@ void LaserConf::FillBundHist()
 //
 // Print them
 void LaserConf::PrintBundHist(Bool_t Prt)
-{
+{   //
+    //Individual means
+    //
+    for(Int_t ib=0; ib<fNboard; ib++){
+        for(Int_t ic=0; ic<fNchann; ic++){
+            // No laser correction
+            if(fBoardChToNum[ib][ic] > 0.0){
+                Int_t iBundle = fBoardChToBundle[ib][ic];      // Get bundle
+                //
+                // Process bundles
+                //
+                if(iBundle >=0){
+                    Double_t cont = fBoardChToNum[ib][ic];
+                    fhb_Fibrem[iBundle]->Fill(fBoardChToMean[ib][ic],cont);
+                }
+            }
+        }
+    }
     for(Int_t i=0; i<fNbundle; i++){
         // Canvases
         TString CbdlId = Form("fCbdl_%d",i);
@@ -802,16 +845,16 @@ void LaserConf::PrintBundHist(Bool_t Prt)
         fCbdl[i] = new TCanvas(CbdlId,CbdlName,10*(i+1),10*(i+1),800,800);
         fCbdl[i]->Divide(2,2);
         // Plots
-        fCbdl[i]->cd(1);
+        fCbdl[i]->cd(1);  gPad->SetLogy(1);
         fhb_num [i]->Draw();
-        fCbdl[i]->cd(2);
+        fCbdl[i]->cd(2);  gPad->SetLogy(1);
         fhb_Min [i]->SetLineColor(kGreen);
         fhb_Min [i]->Draw();
         fhb_Max [i]->SetLineColor(kMagenta);
         fhb_Max [i]->Draw("SAME");
         fhb_Mean[i]->SetLineColor(kBlack);
         fhb_Mean[i]->Draw("SAME");
-        fCbdl[i]->cd(3);
+        fCbdl[i]->cd(3); gPad->SetLogy(1);
         gStyle->SetOptFit();
         //LaserCorrection(fh_MbRti[i], fhb_Meanb[i], fh_MbCor[i]);
         fhb_Meanbc[i]->SetLineColor(kRed);
@@ -827,6 +870,9 @@ void LaserConf::PrintBundHist(Bool_t Prt)
         fhb_Fibrebc[i]->SetLineColor(kRed);
         fhb_Fibrebc[i]->Draw();
         fhb_Fibreb [i]->Draw("SAME");
+        fhb_Fibrem[i]->SetMarkerStyle(20);
+        fhb_Fibrem[i]->SetMarkerColor(kMagenta);
+        //fhb_Fibrem[i]->Draw("P HIST SAME"); // Beware of varicella effect
     }
     //
     // Printout mean values of fit
